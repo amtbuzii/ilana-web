@@ -32,7 +32,7 @@ all_datas = (
 
 a = Analysis(
     ["backend/launcher.py"],
-    pathex=["."],
+    pathex=[".", "backend"],   # "backend" lets PyInstaller find the app package
     binaries=rasterio_binaries + pyproj_binaries,
     datas=all_datas,
     hiddenimports=[

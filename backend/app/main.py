@@ -100,17 +100,8 @@ def _frontend_dist() -> Path:
     return Path(__file__).parent.parent.parent / "frontend" / "dist"
 
 _FRONTEND_DIST = _frontend_dist()
-if _FRONTEND_DIST.exists():
-    _assets = _FRONTEND_DIST / "assets"
-    if _assets.exists():
-        app.mount("/assets", StaticFiles(directory=str(_assets)), name="assets")
-
-    @app.get("/{full_path:path}", include_in_schema=False)
-    async def _spa_fallback(full_path: str):
-        candidate = _FRONTEND_DIST / full_path
-        if candidate.is_file():
-            return _FileResponse(str(candidate))
-        return _FileResponse(str(_FRONTEND_DIST / "index.html"))
+# SPA mount is added at the very BOTTOM of this file (after all API routes)
+# so that /api/* and /data/* routes always take priority.
 
 
 # ── SRTM elevation sources ────────────────────────────────────────────────────
@@ -813,3 +804,7 @@ def latlon_to_utm(body: dict):
                 "easting": round(easting, 1), "northing": round(northing, 1)}
     except Exception as e:
         raise HTTPException(400, f"Conversion error: {e}")
+
+# ── SPA static mount (must be last — catches everything not matched above) ────
+if _FRONTEND_DIST.exists():
+    app.mount("/", StaticFiles(directory=str(_FRONTEND_DIST), html=True), name="spa")

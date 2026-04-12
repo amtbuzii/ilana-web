@@ -14,6 +14,24 @@ const DEFAULT_STATIONS = {
   l_outboard: 'hf_4rnd', r_outboard: 'hf_4rnd',
 }
 
+// Store definitions and presets — static data from TM(IS) 1-1520-251-10 fig 7-42.
+// Embedded here so the panel works without a backend call.
+const STATIC_CONFIG = {
+  stores: [
+    { id: 'none',        label: 'Stores Pylon (Empty)',                  pylon_types: ['inboard','outboard'] },
+    { id: 'eft_230',     label: 'External Fuel Tank',                    pylon_types: ['inboard','outboard'] },
+    { id: 'hf_4rnd',     label: 'Hellfire Missile Launcher (loaded ×4)', pylon_types: ['inboard','outboard'] },
+    { id: 'eo_launcher', label: 'EO Launcher',                           pylon_types: ['inboard','outboard'] },
+    { id: 'rocket_m261', label: 'Rocket Launcher (loaded ×19)',          pylon_types: ['inboard','outboard'] },
+  ],
+  presets: [
+    { id: '2eft_2hf',       label: '2×EFT + 2×HF',     stations: { l_outboard: 'hf_4rnd',     l_inboard: 'eft_230',  r_inboard: 'eft_230',  r_outboard: 'hf_4rnd'      } },
+    { id: 'hf_eft_eft_rkt', label: 'HF + 2×EFT + RKT', stations: { l_outboard: 'hf_4rnd',     l_inboard: 'eft_230',  r_inboard: 'eft_230',  r_outboard: 'rocket_m261'  } },
+    { id: 'hf_eft_eft_eo',  label: 'HF + 2×EFT + EO',  stations: { l_outboard: 'hf_4rnd',     l_inboard: 'eft_230',  r_inboard: 'eft_230',  r_outboard: 'eo_launcher'  } },
+    { id: 'clean',          label: 'CLEAN',             stations: { l_outboard: 'none',        l_inboard: 'none',     r_inboard: 'none',     r_outboard: 'none'         } },
+  ],
+}
+
 // Compute ATF (Aerodynamic Trim Factor) from ΔF values without a backend call.
 // ATF = 1 + ΔF/100.  ΔF accumulates per-station drag penalties minus FCR bonus,
 // plus optional COMPOD drag.
@@ -37,7 +55,7 @@ function localComputeAtf(stations, s, fcrOn, compodOn) {
 
 export default function WingStoresPanel({ initialStations, initialFcrOn = false, initialCompodOn = false, onAtfChange, onStationsChange, variant, gunAmmo, onGunAmmoChange, hfMissiles, onHfMissilesChange, eoMissiles, onEoMissilesChange, rocketRounds, onRocketRoundsChange, onFcrChange, onCompodChange, fcrDeltaF = 0.81, compodDeltaF = 0.0, storeDfSettings }) {
   const { t } = useTheme()
-  const [config, setConfig]       = useState(null)
+  const config = STATIC_CONFIG
   const [stations, setStations]   = useState(initialStations ?? DEFAULT_STATIONS)
   const [atf, setAtf]             = useState(1.0)
   const [deltaF, setDeltaF]       = useState(0.0)
@@ -70,10 +88,6 @@ export default function WingStoresPanel({ initialStations, initialFcrOn = false,
 
   useEffect(() => { onStationsChange?.(stations) }, [stations])   // eslint-disable-line
 
-  // Fetch store definitions and presets from backend (labels, pylon compatibility)
-  useEffect(() => {
-    fetch('/api/drag/config').then(r => r.json()).then(setConfig).catch(() => {})
-  }, [])
 
   // Recompute ATF whenever anything that affects drag changes
   useEffect(() => {
