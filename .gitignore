@@ -1,0 +1,21 @@
+# Python
+backend/venv/
+backend/__pycache__/
+backend/app/__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+.env
+
+# Node
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test / cache
+.pytest_cache/
+*.egg-info/

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="green">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ILANA · APACHE MISSION PLANNER</title>
+    <link rel="icon" type="image/png" href="/logo.png" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+      body { height: 100vh; overflow: hidden; }
+      #root { height: 100vh; display: flex; flex-direction: column; }
+
+      /* ── Map tile filter ─────────────────── */
+      [data-theme="green"] .leaflet-tile-pane {
+        filter: grayscale(1) brightness(0.55) hue-rotate(90deg) saturate(4);
+      }
+      [data-theme="blue"] .leaflet-tile-pane { filter: none; }
+
+      /* ── Leaflet chrome ──────────────────── */
+      [data-theme="green"] .leaflet-container { background: #000a00 !important; }
+      [data-theme="blue"]  .leaflet-container { background: #1a1d27 !important; }
+
+      [data-theme="green"] .leaflet-control-attribution { background: #000a00 !important; color: #005500 !important; }
+      [data-theme="blue"]  .leaflet-control-attribution { background: #13151f !important; color: #475569 !important; }
+
+      [data-theme="green"] .leaflet-control-zoom a { background: #000a00 !important; color: #00ff41 !important; border-color: #004400 !important; }
+      [data-theme="blue"]  .leaflet-control-zoom a { background: #13151f !important; color: #94a3b8 !important; border-color: #2d3148 !important; }
+
+      [data-theme="green"] .leaflet-popup-content-wrapper { background: #000a00 !important; color: #00ff41 !important; border: 1px solid #00aa00 !important; border-radius: 4px !important; }
+      [data-theme="blue"]  .leaflet-popup-content-wrapper { background: #13151f !important; color: #e2e8f0 !important; border: 1px solid #2d3148 !important; border-radius: 4px !important; }
+
+      [data-theme="green"] .leaflet-popup-tip { background: #000a00 !important; }
+      [data-theme="blue"]  .leaflet-popup-tip { background: #13151f !important; }
+
+      /* ── Scrollbar ───────────────────────── */
+      [data-theme="green"] ::-webkit-scrollbar-track { background: #000000; }
+      [data-theme="green"] ::-webkit-scrollbar-thumb { background: #004400; }
+      [data-theme="green"] ::-webkit-scrollbar-thumb:hover { background: #00aa00; }
+      [data-theme="blue"]  ::-webkit-scrollbar-track { background: #0d0f1a; }
+      [data-theme="blue"]  ::-webkit-scrollbar-thumb { background: #2d3148; }
+      [data-theme="blue"]  ::-webkit-scrollbar-thumb:hover { background: #3d4168; }
+      ::-webkit-scrollbar { width: 6px; }
+
+      /* ── Waypoint name labels ───────────── */
+      .wpt-label {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        font-size: 11px !important;
+        font-weight: 700 !important;
+        white-space: nowrap !important;
+      }
+      .wpt-label::before { display: none !important; }
+      [data-theme="green"] .wpt-label { color: #00ff41 !important; text-shadow: 0 0 4px #000a00, 0 0 2px #000a00 !important; }
+      [data-theme="blue"]  .wpt-label { color: #e2e8f0 !important; text-shadow: 0 0 4px #0d0f1a, 0 0 2px #0d0f1a !important; }
+
+      /* ── Select options ──────────────────── */
+      [data-theme="green"] option { background: #000a00; color: #00ff41; }
+      [data-theme="blue"]  option { background: #13151f; color: #e2e8f0; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
