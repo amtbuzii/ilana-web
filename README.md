@@ -1,4 +1,4 @@
-# einat-web
+# ilana-web
 
 AH-64D Apache helicopter mission planner — web reimplementation of the Einat VB6 desktop tool.
 
@@ -9,7 +9,7 @@ AH-64D Apache helicopter mission planner — web reimplementation of the Einat V
 ## Quick Start
 
 ```bash
-cd einat-web
+cd ilana-web
 ./start.sh
 ```
 
@@ -22,7 +22,7 @@ The script creates a Python venv, installs all dependencies, and starts both ser
 ## Architecture
 
 ```
-einat-web/
+ilana-web/
 ├── frontend/               React 18 + Vite + Leaflet
 │   └── src/
 │       ├── App.jsx         Main application — multi-route state, layout
@@ -52,7 +52,7 @@ einat-web/
 └── download_dem.py         Pre-download SRTM elevation tiles
 ```
 
-Data lives outside the repo at `../data/` (relative to the `einat-web/` directory):
+Data lives outside the repo at `../data/` (relative to the `ilana-web/` directory):
 
 ```
 ../data/
@@ -164,7 +164,7 @@ Elevation heatmap tiles are generated on demand with rasterio + NumPy + Pillow:
 
 ## Offline data setup
 
-All map tiles and elevation data must be downloaded once before first use. The scripts below store data to `../data/` (one level above `einat-web/`).
+All map tiles and elevation data must be downloaded once before first use. The scripts below store data to `../data/` (one level above `ilana-web/`).
 
 ### Map tiles (download_tiles.py)
 

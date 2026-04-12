@@ -1252,7 +1252,7 @@ export default function App() {
                   </HelpSection>
 
                   <HelpSection title="TO ADD A NEW ZONE OR MORE ZOOM LEVELS" t={t}>
-                    Edit <HelpMono t={t}>download_tiles.py</HelpMono> (next to the einat-web folder):
+                    Edit <HelpMono t={t}>download_tiles.py</HelpMono> (next to the ilana-web folder):
                     <HelpCode t={t}>{`# Current settings (zones 34–40):
 LON_MIN, LON_MAX = 17.5, 60.5
 LAT_MIN, LAT_MAX =  6.5, 62.5

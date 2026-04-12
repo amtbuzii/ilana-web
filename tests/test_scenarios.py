@@ -11,7 +11,7 @@ Tolerances:
   TRQ / FF / OGE / IGE / PA  exact  — all round to the same integer as Einat.exe
 
 Run:
-    cd <einat-web root>
+    cd <ilana-web root>
     backend/venv/bin/pytest tests/test_scenarios.py -v
 """
 
