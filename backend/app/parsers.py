@@ -37,7 +37,7 @@ import struct
 import numpy as np
 from pathlib import Path
 
-DATA_DIR = Path(__file__).parent.parent.parent.parent / "einat"
+DATA_DIR = Path(__file__).parent.parent / "data_perf"
 
 # ── PA table axes ──────────────────────────────────────────────────────────────
 PA_ALT_FT = [0, 2000, 4000, 6000, 8000, 10000, 12000]   # 7 levels
