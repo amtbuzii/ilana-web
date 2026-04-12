@@ -20,6 +20,7 @@ Endpoints:
 
 import asyncio
 import math as _math
+import sys as _sys
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -46,7 +47,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Einat Web API", version="1.0.0", lifespan=lifespan)
 
 import os as _os
-_ALLOWED_ORIGINS = ["http://localhost:5173", "http://localhost:3000"]
+_ALLOWED_ORIGINS = ["http://localhost:5173", "http://localhost:3000", "http://localhost:8000"]
 _EXTRA = _os.environ.get("ALLOWED_ORIGINS", "")   # comma-separated extra origins from env
 if _EXTRA:
     _ALLOWED_ORIGINS += [o.strip() for o in _EXTRA.split(",") if o.strip()]
@@ -57,6 +58,20 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ── PyInstaller / frozen path resolution ─────────────────────────────────────
+
+def _bundle_root() -> Path:
+    """Exe directory when frozen (data/ lives here), project root in dev."""
+    if getattr(_sys, "frozen", False):
+        return Path(_sys.executable).parent
+    return Path(__file__).parent.parent.parent.parent
+
+def _meipass() -> Path:
+    """Unpacked bundle tree when frozen, project root in dev."""
+    if getattr(_sys, "frozen", False):
+        return Path(_sys._MEIPASS)
+    return Path(__file__).parent.parent.parent.parent
 
 # ── Static data directory ─────────────────────────────────────────────────────
 # Serves offline map tiles and SRTM elevation files.
@@ -69,9 +84,33 @@ app.add_middleware(
 #   srtm30.vrt          — 30m VRT mosaic (if downloaded)
 #   dem_tile_cache/     — Generated elevation heatmap PNG tiles
 
-_DATA_ROOT = Path(__file__).parent.parent.parent.parent / "data"
+_DATA_ROOT = _bundle_root() / "data"
 if _DATA_ROOT.exists():
     app.mount("/data", StaticFiles(directory=str(_DATA_ROOT)), name="data")
+
+# ── Frontend static files (React SPA) ────────────────────────────────────────
+# In the frozen bundle, Vite's dist/ is collected into _MEIPASS/frontend_dist/.
+# In dev, it lives at frontend/dist/ relative to the repo root.
+
+from fastapi.responses import FileResponse as _FileResponse
+
+def _frontend_dist() -> Path:
+    if getattr(_sys, "frozen", False):
+        return _meipass() / "frontend_dist"
+    return Path(__file__).parent.parent.parent / "frontend" / "dist"
+
+_FRONTEND_DIST = _frontend_dist()
+if _FRONTEND_DIST.exists():
+    _assets = _FRONTEND_DIST / "assets"
+    if _assets.exists():
+        app.mount("/assets", StaticFiles(directory=str(_assets)), name="assets")
+
+    @app.get("/{full_path:path}", include_in_schema=False)
+    async def _spa_fallback(full_path: str):
+        candidate = _FRONTEND_DIST / full_path
+        if candidate.is_file():
+            return _FileResponse(str(candidate))
+        return _FileResponse(str(_FRONTEND_DIST / "index.html"))
 
 
 # ── SRTM elevation sources ────────────────────────────────────────────────────

@@ -28,7 +28,7 @@ export async function calculateFlightPlan(payload) {
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: res.statusText }))
-    throw new Error(fmtDetail(err.detail) || 'Calculation failed')
+    throw new Error(fmtDetail(err.detail) || 'Flight plan calculation failed — server returned an unexpected error')
   }
   return res.json()
 }
@@ -39,7 +39,7 @@ export async function utmToLatLon(zone, easting, northing) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ zone, easting, northing }),
   })
-  if (!res.ok) throw new Error('UTM conversion failed')
+  if (!res.ok) throw new Error('UTM conversion failed — check zone, easting, and northing values')
   return res.json()
 }
 
@@ -55,7 +55,7 @@ export async function cspFuelFromOge(variant, alt_ft, oat_c, empty_weight_lbs, t
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ variant, alt_ft, oat_c, empty_weight_lbs, target_oge_pct, n_bidons }),
   })
-  if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.detail || 'OGE lookup failed') }
+  if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.detail || 'OGE hover table lookup failed — check altitude, OAT, and weight values') }
   return res.json()
 }
 
@@ -65,7 +65,7 @@ export async function cspFuelFromIge(variant, alt_ft, oat_c, empty_weight_lbs, t
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ variant, alt_ft, oat_c, empty_weight_lbs, target_ige_pct, n_bidons }),
   })
-  if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.detail || 'IGE lookup failed') }
+  if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.detail || 'IGE hover table lookup failed — check altitude, OAT, and weight values') }
   return res.json()
 }
 
@@ -75,6 +75,6 @@ export async function latLonToUtm(lat, lon) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ lat, lon }),
   })
-  if (!res.ok) throw new Error('Conversion failed')
+  if (!res.ok) throw new Error('Coordinate conversion failed — check lat/lon values')
   return res.json()
 }

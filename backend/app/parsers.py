@@ -34,10 +34,18 @@ OGE / PA / ffALPHA files use separate formats (see class docstrings).
 
 import math
 import struct
+import sys as _sys
 import numpy as np
 from pathlib import Path
 
-DATA_DIR = Path(__file__).parent.parent / "data_perf"
+
+def _data_perf_dir() -> Path:
+    """Resolve data_perf/ correctly in both dev and PyInstaller frozen mode."""
+    if getattr(_sys, "frozen", False):
+        return Path(_sys._MEIPASS) / "data_perf"
+    return Path(__file__).parent.parent / "data_perf"
+
+DATA_DIR = _data_perf_dir()
 
 # ── PA table axes ──────────────────────────────────────────────────────────────
 PA_ALT_FT = [0, 2000, 4000, 6000, 8000, 10000, 12000]   # 7 levels

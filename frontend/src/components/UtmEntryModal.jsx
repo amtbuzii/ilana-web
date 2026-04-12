@@ -50,7 +50,7 @@ export default function UtmEntryModal({ onClose, onConfirm, aglOffset, defaultSp
 
   const handleOk = async () => {
     const valid = rows.filter(r => r.east.length === 6 && r.north.length === 6)
-    if (valid.length === 0) { setError('Enter at least one complete waypoint (6+6 digits)'); return }
+    if (valid.length === 0) { setError('Enter at least one complete waypoint — easting and northing must each be 6 digits'); return }
     setLoading(true); setError(null)
     try {
       // Convert all UTM → lat/lon in parallel
@@ -79,7 +79,7 @@ export default function UtmEntryModal({ onClose, onConfirm, aglOffset, defaultSp
       })
       onConfirm(wpts)
     } catch (e) {
-      setError('Conversion error: ' + e.message)
+      setError('Could not convert UTM coordinates — check zone/easting/northing values or try again. ' + e.message)
       setLoading(false)
     }
   }

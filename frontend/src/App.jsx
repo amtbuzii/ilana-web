@@ -233,6 +233,7 @@ export default function App() {
   const [fileImportError,  setFileImportError]  = useState(null)
   const [fileImportStatus, setFileImportStatus] = useState(null)   // null | string
   const fileImportRef = useRef(null)
+  const entImportRef  = useRef(null)
   const [mapAddMode,   setMapAddMode]   = useState(false)
   const [settingsTab,    setSettingsTab]  = useState('drag')
   const [settingsReset,  setSettingsReset] = useState(0) // increment to force input remount
@@ -331,6 +332,7 @@ export default function App() {
       wp.oat_auto ? { ...wp, oat_c: computeOat(wp.alt_ft, slTemp) } : wp
     ))
   }, [seaLevelTemp])   // eslint-disable-line
+
 
   // ── Weight computation ─────────────────────────────────────────────────────
   const HW_WEIGHTS      = { eft_230: settings.hwEft230, hf_4rnd: settings.hwHf4rnd, eo_launcher: settings.hwEoLauncher, rocket_m261: settings.hwRocketM261 }
@@ -435,7 +437,7 @@ export default function App() {
           setActiveRouteId(0)
         }
         setError(null); setActiveWpt(null); setTargetWptIdx(null)
-      } catch { setError('Invalid mission file') }
+      } catch { setError('Could not load mission file — file may be corrupted or not a valid Ilana save (.json)') }
     }
     reader.readAsText(file)
     e.target.value = ''
@@ -462,7 +464,7 @@ export default function App() {
       if (wpts.length > 0)     setWaypoints(wpts.map(wp => ({ ...DEFAULT_WPT, ...wp })))
       setResults(null); setStopAlert(null); setError(null)
     } catch (err) {
-      setError(`Excel import failed: ${err.message}`)
+      setError(`Could not read Excel file — make sure it's a valid Galaxy export (.xlsx/.xls): ${err.message}`)
     }
   }
 
@@ -580,7 +582,7 @@ export default function App() {
         configuredEmptyWt, parseFloat(targetOge), nBidons
       )
       setCspFuel(String(fuel_lbs))
-    } catch (e) { setError(`CSP OGE: ${e.message}`) }
+    } catch (e) { setError(`Hover power lookup failed (OGE) — ${e.message}`) }
   }
 
   const handleCspAutoIge = async (targetIge) => {
@@ -594,7 +596,7 @@ export default function App() {
         configuredEmptyWt, parseFloat(targetIge), nBidons
       )
       setCspFuel(String(fuel_lbs))
-    } catch (e) { setError(`CSP IGE: ${e.message}`) }
+    } catch (e) { setError(`Hover power lookup failed (IGE) — ${e.message}`) }
   }
 
   const addWaypoint = () => {
@@ -645,7 +647,7 @@ export default function App() {
 
       if (entries.length === 0) {
         setFileImportStatus(null)
-        setFileImportError('No valid coordinates found in column E')
+        setFileImportError('No UTM coordinates found — make sure this is a Galaxy planning file with coordinates in column E')
         return
       }
 
@@ -683,7 +685,156 @@ export default function App() {
       setFileImportStatus(`✔ Loaded ${wpts.length} waypoints from "${file.name}"`)
     } catch (err) {
       setFileImportStatus(null)
-      setFileImportError('Import failed: ' + err.message)
+      setFileImportError('Could not read Galaxy file — ' + err.message)
+    }
+  }
+
+  // ---------- .ent file import (Einat app format) ----------
+  // Screen (x,y) in nautical miles → UTM zone + easting/northing in metres
+  function entXYtoUTM(x, y, region) {
+    let plh, a, X0, y0, utmX0, utmY0
+    if (region === 1) {
+      if (x > (y + 9069) / 57.75) {
+        plh = 37; a = -0.0355; X0 = 269.31; y0 = 420.42; utmX0 = 500; utmY0 = 3319
+      } else {
+        plh = 36; a = 0.017;   X0 = 60.87;  y0 = 363.82; utmX0 = 691; utmY0 = 3432
+      }
+    } else if (region === 2) {
+      if (x <= (y - 6089) / -16.86) {
+        plh = 36; a = 0.0784; X0 = y < 579 ? 143.42 : 88.03; y0 = y < 579 ? 222 : 936.36
+        utmX0 = 500; utmY0 = y < 579 ? 3542 : 2213
+      } else if (x <= (y - 18358) / -30.05) {
+        plh = 37; a = 0.046844; X0 = y < 572.9 ? 447.73 : 423.67; y0 = y < 572.9 ? 304.9 : 839.1
+        utmX0 = 500; utmY0 = y < 572.9 ? 3431 : 2433
+      } else {
+        plh = 38; a = 0.0136; X0 = y < 581 ? 760.3 : 752.72; y0 = y < 581 ? 312.89 : 849.98
+        utmX0 = 500; utmY0 = y < 581 ? 3430 : 2434
+      }
+    } else if (region === 3) {
+      plh = 36; a = 0; X0 = 163.37; y0 = 363.67; utmX0 = 500; utmY0 = 3762
+    } else { // region 4
+      if (x >= (y - 6640) / -10.75) {
+        plh = 36; a = 0.0546; X0 = y < 650 ? 714.3 : 685.1; y0 = y < 650 ? 379.3 : 914.7
+        utmX0 = 500; utmY0 = y < 650 ? 4760 : 3763
+      } else if (x >= (y - 2192) / -5.78) {
+        plh = 35; a = 0.13; X0 = y < 570 ? 458 : 388; y0 = y < 570 ? 300 : 832
+        utmX0 = 500; utmY0 = y < 570 ? 4872 : 3875
+      } else {
+        plh = 34; a = 0.209; X0 = y < 500 ? 214 : 92; y0 = y < 500 ? 199.6 : 784
+        utmX0 = 500; utmY0 = y < 500 ? 4985 : 3875
+      }
+    }
+    let xc, yc
+    if (a === 0) {
+      xc = X0; yc = y
+    } else {
+      const at = -1 / a
+      const b  = y0 - at * X0
+      xc = (b - (y - a * x)) / (a - at)
+      yc = at * xc + b
+    }
+    let dx = Math.sqrt((y - yc) ** 2 + (x - xc) ** 2)
+    let dy = Math.sqrt((yc - y0) ** 2 + (xc - X0) ** 2)
+    if (yc > y0) dy = -dy
+    if (x < xc) dx = -dx
+    return {
+      zone:     plh,
+      easting:  Math.round(utmX0 + dx * 1.852) * 1000,
+      northing: Math.round(utmY0 + dy * 1.852) * 1000,
+    }
+  }
+
+  const handleImportEnt = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    e.target.value = ''
+    setFileImportError(null)
+    setFileImportStatus(`📂 Reading "${file.name}"…`)
+    try {
+      // Decode Windows-1255 (Hebrew)
+      const buf  = await file.arrayBuffer()
+      const text = new TextDecoder('windows-1255').decode(buf)
+      const lines = text.split(/\r?\n/)
+
+      const stripVal = s => s.trim().replace(/^"(.*)"$/, '$1')
+
+      // Parse header — line count depends on version
+      const version = parseFloat(lines[0])
+      const count   = parseInt(lines[1])
+
+      if (isNaN(count) || count < 1) throw new Error('Invalid .ent file — bad waypoint count')
+      if (version < 1.51) throw new Error('Unsupported .ent version (< 1.51)')
+
+      // Header layout:
+      //  v<1.6:  22 lines (no blnCalcAlpha, deltaalphafuel present, no FUEL(1), Region at idx 21)
+      //  v>=1.6, <1.7: 23 lines (blnCalcAlpha present, FUEL(1) present, Region at idx 22)
+      //  v>=1.7: 24 lines (tLatLon also present, Region at idx 23)
+      const HEADER_LINES = version >= 1.7 ? 24 : version >= 1.6 ? 23 : 22
+      const regionLine   = HEADER_LINES - 1
+      const region       = parseInt(lines[regionLine])
+
+      if (isNaN(region) || region < 1 || region > 4) throw new Error('Invalid .ent file — unrecognised region')
+      const BLOCK = 14
+      const entries = []
+      for (let i = 0; i < count; i++) {
+        const base = HEADER_LINES + i * BLOCK
+        const name = stripVal(lines[base + 13] ?? '')
+        if (!name) continue // skip empty/placeholder waypoints
+        const xVal = parseFloat(lines[base + 5])
+        const yVal = parseFloat(lines[base + 6])
+        if (!xVal && !yVal) continue
+        entries.push({
+          name,
+          alt_ft:    parseFloat(lines[base + 0]) || 0,
+          oat_c:     parseFloat(lines[base + 1]),
+          tas_kt:    parseFloat(lines[base + 2]) || 0,
+          wind_dir:  parseFloat(lines[base + 3]) || 0,
+          wind_spd:  parseFloat(lines[base + 4]) || 0,
+          x: xVal, y: yVal,
+        })
+      }
+
+      if (entries.length === 0) throw new Error('No valid waypoints found in file')
+
+      // Convert screen coords → lat/lon
+      setFileImportStatus(`🔄 Converting ${entries.length} coordinates…`)
+      const coords = entries.map(({ x, y }) => {
+        const { zone, easting, northing } = entXYtoUTM(x, y, region)
+        return utmToLatLonJS(zone, 'N', easting, northing)
+      })
+
+      // Fetch elevations
+      setFileImportStatus(`🛰 Fetching elevations (${entries.length} points)…`)
+      const elevations = await Promise.all(
+        coords.map(({ lat, lon }) => fetchElevation(lat, lon).catch(() => ({ elevation_ft: 0 })))
+      )
+
+      const offset = parseInt(aglOffset) || 1000
+      const wpts = coords.map(({ lat, lon }, i) => {
+        const elev    = elevations[i]?.elevation_ft ?? 0
+        const altFt   = entries[i].alt_ft > 0 ? entries[i].alt_ft : (altMode === 'MSL' ? offset : Math.round(elev + offset))
+        const fileOat = entries[i].oat_c
+        const oat     = isNaN(fileOat) ? parseFloat(computeOat(String(altFt), seaLevelTemp)) : fileOat
+        return {
+          ...DEFAULT_WPT,
+          name:           entries[i].name,
+          lat:            String(lat),
+          lon:            String(lon),
+          surface_alt_ft: String(Math.round(elev)),
+          alt_ft:         String(altFt),
+          oat_c:          String(oat),
+          oat_auto:       isNaN(fileOat),
+          ...(entries[i].tas_kt > 0 && { airspeed_kts: String(entries[i].tas_kt) }),
+          wind_dir:       String(entries[i].wind_dir),
+          wind_speed_kts: String(entries[i].wind_spd),
+        }
+      })
+
+      updateRoute(activeRouteId, r => ({ ...r, waypoints: wpts, results: null }))
+      setFileImportStatus(`✔ Loaded ${wpts.length} waypoints from "${file.name}"`)
+    } catch (err) {
+      setFileImportStatus(null)
+      setFileImportError('Could not read Einat file — ' + err.message)
     }
   }
 
@@ -781,7 +932,7 @@ export default function App() {
   const importRouteJson = (e) => {
     const file = e.target.files[0]; if (!file) return
     e.target.value = ''
-    if (routes.length >= 10) { setError('Maximum 10 routes per project'); return }
+    if (routes.length >= 10) { setError('Cannot add route — maximum of 10 routes per project reached. Delete an existing route first.'); return }
     const reader = new FileReader()
     reader.onload = ev => {
       try {
@@ -789,13 +940,13 @@ export default function App() {
         const wpts = Array.isArray(m.waypoints)
           ? m.waypoints.map(wp => ({ ...DEFAULT_WPT, ...wp, oat_auto: wp.oat_auto ?? true }))
           : []
-        if (wpts.length === 0) { setError('No waypoints found in file'); return }
+        if (wpts.length === 0) { setError('No waypoints found in this file — the JSON file may be empty or not a valid Ilana route export'); return }
         const id = routeIdRef.current++
         const color = ROUTE_COLORS[id % ROUTE_COLORS.length]
         const name = m.project_name || file.name.replace(/\.json$/i, '') || `Route ${routes.length + 1}`
         setRoutes(rs => [...rs, { id, name, visible: true, color, config: { ...ROUTE_CONFIG_DEFAULTS }, waypoints: wpts, results: null }])
         setActiveRouteId(id); setActiveWpt(null)
-      } catch { setError('Invalid JSON file') }
+      } catch { setError('Could not read file — not a valid Ilana route file (.json)') }
     }
     reader.readAsText(file)
   }
@@ -803,7 +954,7 @@ export default function App() {
   const importRouteXls = async (e) => {
     const file = e.target.files[0]; if (!file) return
     e.target.value = ''
-    if (routes.length >= 10) { setError('Maximum 10 routes per project'); return }
+    if (routes.length >= 10) { setError('Cannot add route — maximum of 10 routes per project reached. Delete an existing route first.'); return }
     try {
       const { mission: m, waypoints: wpts } = await importFromExcel(file)
       const id = routeIdRef.current++
@@ -811,7 +962,7 @@ export default function App() {
       const name = m.route_name || m.project_name || file.name.replace(/\.xlsx?$/i, '') || `Route ${routes.length + 1}`
       setRoutes(rs => [...rs, { id, name, visible: true, color, config: { ...ROUTE_CONFIG_DEFAULTS }, waypoints: wpts.map(wp => ({ ...DEFAULT_WPT, ...wp })), results: null }])
       setActiveRouteId(id); setActiveWpt(null)
-    } catch (err) { setError(`Excel import failed: ${err.message}`) }
+    } catch (err) { setError(`Could not read Excel file — make sure it's a valid Galaxy export (.xlsx/.xls): ${err.message}`) }
   }
 
   const updateWaypoint = (idx, field, value) =>
@@ -901,12 +1052,12 @@ export default function App() {
       const name = w.name || `WP${i + 1}`
       for (const [field, label] of WPT_FIELDS) {
         const raw = w[field]
-        if (raw === '…' || raw === '...')   { setError(`${name}: ${label} is still loading — wait for elevation lookup`); setLoading(false); return }
-        if (raw === '' || raw == null)       { setError(`${name}: ${label} is required`);                                  setLoading(false); return }
-        if (isNaN(parseFloat(raw)))          { setError(`${name}: ${label} — invalid value "${raw}"`);                    setLoading(false); return }
+        if (raw === '…' || raw === '...')   { setError(`${name}: ${label} is still loading — wait for the elevation lookup to finish`); setLoading(false); return }
+        if (raw === '' || raw == null)       { setError(`${name}: ${label} is missing — fill in all waypoint fields before calculating`); setLoading(false); return }
+        if (isNaN(parseFloat(raw)))          { setError(`${name}: ${label} has an invalid value ("${raw}") — a number is expected`);     setLoading(false); return }
       }
     }
-    if (!initFuel || isNaN(parseFloat(initFuel))) { setError('Initial fuel is required'); setLoading(false); return }
+    if (!initFuel || isNaN(parseFloat(initFuel))) { setError('Initial fuel is missing — enter the starting fuel load (lbs) in the weight panel before calculating'); setLoading(false); return }
     try {
       const data = await calculateFlightPlan({
         variant,
@@ -956,7 +1107,7 @@ export default function App() {
       setResults(data)
       setTableFolded(false)
       setStopAlert(data.stop_alert ?? null)
-    } catch (e) { setError(e.message) }
+    } catch (e) { setError(`Calculation error: ${e.message}`) }
     finally { setLoading(false) }
   }
 
@@ -2308,9 +2459,10 @@ data/srtm.tif
                   </div>
                   <div style={{ display: 'flex', gap: 6 }}>
                     {[
-                      { icon: '✎', label: 'Manual UTM', onClick: () => setShowUtmModal(true) },
-                      { icon: '📁', label: 'From File',  onClick: () => fileImportRef.current?.click() },
-                      { icon: '🗺', label: 'From Map',   onClick: () => setMapAddMode(true) },
+                      { icon: '✎', label: 'Manual UTM',    onClick: () => setShowUtmModal(true) },
+                      { icon: '📊', label: 'Galaxy XLS',    onClick: () => fileImportRef.current?.click() },
+                      { icon: '📁', label: 'Einat .ENT',    onClick: () => entImportRef.current?.click() },
+                      { icon: '🗺', label: 'From Map',      onClick: () => setMapAddMode(true) },
                     ].map(({ icon, label, onClick }) => (
                       <button key={label} onClick={onClick}
                         style={{
@@ -2323,10 +2475,8 @@ data/srtm.tif
                       </button>
                     ))}
                   </div>
-                  {fileImportStatus && (
-                    <div style={{ marginTop: 6, fontSize: 9,
-                      color: fileImportStatus.startsWith('✔') ? t.ok : t.accent,
-                      fontStyle: 'italic' }}>
+                  {fileImportStatus && !fileImportStatus.startsWith('✔') && (
+                    <div style={{ marginTop: 6, fontSize: 9, color: t.accent, fontStyle: 'italic' }}>
                       {fileImportStatus}
                     </div>
                   )}
@@ -2337,6 +2487,8 @@ data/srtm.tif
                   )}
                   <input ref={fileImportRef} type="file" accept=".xls,.xlsx"
                     onChange={handleImportFile} style={{ display: 'none' }} />
+                  <input ref={entImportRef} type="file" accept=".ent"
+                    onChange={handleImportEnt} style={{ display: 'none' }} />
                 </div>
               )}
               <WaypointPanel

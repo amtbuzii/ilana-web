@@ -134,7 +134,7 @@ function WaypointCard({ index, wp, isActive, isTarget, isCsp, cspFuel, onSelect,
         setSurfaceAltAuto(true)
         onUpdate('alt_ft', altMode === 'MSL' ? String(aglOffset) : String(elevation_ft + aglOffset))
       } catch {
-        if (!cancelled) setUtmErr('INVALID UTM')
+        if (!cancelled) setUtmErr('Invalid UTM — check zone, easting, and northing')
       }
     }
     apply()
