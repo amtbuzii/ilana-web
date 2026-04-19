@@ -104,18 +104,18 @@ export default function WingStoresPanel({ initialStations, initialFcrOn = false,
   return (
     <div style={{ borderBottom: `1px solid ${t.border0}` }}>
       <div onClick={() => setExpanded(e => !e)} style={{
-        padding: '8px 16px', cursor: 'pointer', userSelect: 'none',
+        padding: '10px 16px', cursor: 'pointer', userSelect: 'none',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        background: t.bg2,
+        background: t.bg2, borderLeft: expanded ? `3px solid ${t.accent}` : '3px solid transparent',
       }}>
-        <span style={{ fontSize: 10, fontWeight: 700, color: t.text2, letterSpacing: 2 }}>WING STORES</span>
+        <span style={{ fontSize: 12, fontWeight: 700, color: expanded ? t.text0 : t.text2, letterSpacing: 2 }}>WING STORES</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           {/* Show ATF/ΔF summary in collapsed state */}
           {!expanded && <>
-            <span style={{ fontWeight: 700, fontSize: 11, color: atfColor, background: t.bg3, padding: '1px 8px', borderRadius: 3, border: `1px solid ${atfColor}`, letterSpacing: 1 }}>ATF {atf.toFixed(3)}</span>
-            <span style={{ fontWeight: 700, fontSize: 11, color: t.text2, background: t.bg3, padding: '1px 8px', borderRadius: 3, border: `1px solid ${t.text2}`, letterSpacing: 1 }}>ΔF {deltaF.toFixed(3)}</span>
+            <span style={{ fontWeight: 700, fontSize: 12, color: atfColor, background: t.bg3, padding: '2px 9px', borderRadius: 3, border: `1px solid ${atfColor}`, letterSpacing: 1 }}>ATF {atf.toFixed(3)}</span>
+            <span style={{ fontWeight: 700, fontSize: 12, color: t.text2, background: t.bg3, padding: '2px 9px', borderRadius: 3, border: `1px solid ${t.text2}`, letterSpacing: 1 }}>ΔF {deltaF.toFixed(3)}</span>
           </>}
-          <span style={{ color: t.text3, fontSize: 10 }}>{expanded ? '▲' : '▼'}</span>
+          <span style={{ color: t.text3, fontSize: 11 }}>{expanded ? '▲' : '▼'}</span>
         </div>
       </div>
 

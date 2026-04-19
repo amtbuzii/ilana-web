@@ -78,3 +78,31 @@ export async function latLonToUtm(lat, lon) {
   if (!res.ok) throw new Error('Coordinate conversion failed — check lat/lon values')
   return res.json()
 }
+
+export async function fetchTileZoomLimits() {
+  try {
+    const res = await fetch(`${BASE}/data-status`)
+    if (!res.ok) return null
+    const data = await res.json()
+    return {
+      map:  data.map_tiles?.bounds?.zoom_max  ?? 11,
+      topo: data.topo_tiles?.bounds?.zoom_max ?? 14,
+      dem:  11,
+    }
+  } catch {
+    return null
+  }
+}
+
+export async function suggestClimbSpeed(payload) {
+  const res = await fetch(`${BASE}/suggest-climb-speed`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }))
+    throw new Error(err.detail || 'Speed suggestion failed')
+  }
+  return res.json()
+}

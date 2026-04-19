@@ -143,6 +143,26 @@ class StopAlert(BaseModel):
     lon:     float
 
 
+class SuggestClimbSpeedRequest(BaseModel):
+    variant: Literal["peten", "LB", "ALPHA"] = "LB"
+    empty_weight_lbs: float = Field(ge=10000, le=25000)
+    fuel_at_departure_lbs: float = Field(ge=0, le=6000)
+    etf_eng1: float = Field(default=0.95, ge=0.5, le=1.0)
+    etf_eng2: float = Field(default=0.95, ge=0.5, le=1.0)
+    n_bidons: int = Field(default=0, ge=0, le=4)
+    delta_f: Optional[float] = Field(default=None)
+    wfrom: Waypoint
+    wto: Waypoint
+    wca_thresholds: WcaThresholds = Field(default_factory=WcaThresholds)
+
+
+class SuggestClimbSpeedResponse(BaseModel):
+    found: bool
+    suggested_tas_kts: Optional[int] = None
+    original_tas_kts: float
+    message: str
+
+
 class FlightPlanResponse(BaseModel):
     legs: list[LegResult]
     waypoints: list[WaypointResult]

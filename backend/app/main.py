@@ -32,9 +32,10 @@ from fastapi.staticfiles import StaticFiles
 from pyproj import Transformer
 
 from .drag import STORES, PRESETS, STATION_LABELS, NO_WEAPONS_DELTA_F, compute_atf
-from .models import FlightPlanRequest, FlightPlanResponse, LegResult, WaypointResult, WcaAlert, StopAlert
+from .models import (FlightPlanRequest, FlightPlanResponse, LegResult, WaypointResult, WcaAlert, StopAlert,
+                     SuggestClimbSpeedRequest, SuggestClimbSpeedResponse)
 from .wca import evaluate_wca
-from .performance import calculate_flight_plan, fuel_from_oge
+from .performance import calculate_flight_plan, fuel_from_oge, suggest_climb_speed
 
 # ── App setup ────────────────────────────────────────────────────────────────
 
@@ -486,6 +487,39 @@ def csp_fuel_from_ige_endpoint(body: dict):
     if fuel is None:
         raise HTTPException(400, "IGE target outside computable GW range (14 000–21 000 lb)")
     return {"fuel_lbs": fuel}
+
+
+@app.post("/api/suggest-climb-speed", response_model=SuggestClimbSpeedResponse)
+def suggest_climb_speed_endpoint(req: SuggestClimbSpeedRequest):
+    """Find the maximum TAS ≤ 120 kts that allows a failed climb/level leg to pass WCA checks."""
+    try:
+        acft_etf = (req.etf_eng1 + req.etf_eng2) / 2.0
+        found, best_tas = suggest_climb_speed(
+            variant=req.variant,
+            empty_weight_lbs=req.empty_weight_lbs,
+            fuel_at_departure_lbs=req.fuel_at_departure_lbs,
+            wfrom=req.wfrom,
+            wto=req.wto,
+            acft_etf=acft_etf,
+            n_bidons=req.n_bidons,
+            delta_f=req.delta_f,
+            thresholds=req.wca_thresholds,
+        )
+    except Exception as e:
+        raise HTTPException(500, f"Suggestion error: {e}")
+
+    original_kts = int(round(req.wfrom.airspeed_kts))
+    if found and best_tas is not None:
+        msg = f"Max speed for this leg: {best_tas} kts (original: {original_kts} kts)"
+    else:
+        msg = f"No feasible speed found — even 40 kts exceeds torque limits at this leg."
+
+    return SuggestClimbSpeedResponse(
+        found=found,
+        suggested_tas_kts=best_tas if found else None,
+        original_tas_kts=req.wfrom.airspeed_kts,
+        message=msg,
+    )
 
 
 # ── Offline data status ───────────────────────────────────────────────────────

@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { utmToLatLon, fetchElevation, latLonToUtm } from '../api.js'
 import { useTheme } from '../theme.jsx'
 
-export default function WaypointPanel({ waypoints, activeWpt, onSelect, onUpdate, onAdd, onRemove, onReorder, onReverse, aglOffset = 1000, altMode = 'AGL', targetWptIdx, onSetTarget, cspWptIdx, cspFuel, onSetCsp, onCspFuelChange, onCspAutoOge, onCspAutoIge }) {
+export default function WaypointPanel({ waypoints, activeWpt, onSelect, onUpdate, onAdd, onRemove, onReorder, onReverse, aglOffset = 1000, altMode = 'AGL', seaLevelTemp = 25, targetWptIdx, onSetTarget, cspWptIdx, cspFuel, onSetCsp, onCspFuelChange, onCspAutoOge, onCspAutoIge }) {
   const { t } = useTheme()
   // Shared ref so dragging state survives across card re-renders
   const dragFromRef = useRef(null)
@@ -11,16 +11,19 @@ export default function WaypointPanel({ waypoints, activeWpt, onSelect, onUpdate
   return (
     <div style={{ fontFamily: t.font }}>
       <div style={{
-        padding: '5px 16px', fontSize: 10, color: t.text2, letterSpacing: 1,
+        padding: '7px 16px',
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
       }}>
-        <span>WAYPOINTS — SELECT THEN CLICK MAP</span>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, minWidth: 0 }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: t.text1, letterSpacing: 2, flexShrink: 0 }}>WAYPOINTS</span>
+          <span style={{ fontSize: 10, color: t.text3, letterSpacing: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>CLICK MAP TO ADD</span>
+        </div>
         <div style={{ display: 'flex', gap: 5 }}>
           <button
             onClick={onReverse}
             title="Reverse route order"
             style={{
-              padding: '2px 9px', fontSize: 10, background: t.bg4,
+              padding: '3px 10px', fontSize: 11, background: t.bg4,
               color: t.text2, border: `1px solid ${t.border0}`, borderRadius: 3,
               cursor: 'pointer', fontFamily: t.font, letterSpacing: 1,
             }}
@@ -28,7 +31,7 @@ export default function WaypointPanel({ waypoints, activeWpt, onSelect, onUpdate
           <button
             onClick={onAdd}
             style={{
-              padding: '2px 9px', fontSize: 10, background: t.bg4,
+              padding: '3px 10px', fontSize: 11, background: t.bg4,
               color: t.accent, border: `1px solid ${t.border1}`, borderRadius: 3,
               cursor: 'pointer', fontFamily: t.font, letterSpacing: 1,
             }}
@@ -52,6 +55,7 @@ export default function WaypointPanel({ waypoints, activeWpt, onSelect, onUpdate
           onCspAutoIge={onCspAutoIge}
           aglOffset={aglOffset}
           altMode={altMode}
+          seaLevelTemp={seaLevelTemp}
           dragFromRef={dragFromRef}
           onReorder={onReorder}
         />
@@ -60,7 +64,7 @@ export default function WaypointPanel({ waypoints, activeWpt, onSelect, onUpdate
   )
 }
 
-function WaypointCard({ index, wp, isActive, isTarget, isCsp, cspFuel, onSelect, onUpdate, onRemove, onSetTarget, onSetCsp, onCspFuelChange, onCspAutoOge, onCspAutoIge, aglOffset = 1000, altMode = 'AGL', dragFromRef, onReorder }) {
+function WaypointCard({ index, wp, isActive, isTarget, isCsp, cspFuel, onSelect, onUpdate, onRemove, onSetTarget, onSetCsp, onCspFuelChange, onCspAutoOge, onCspAutoIge, aglOffset = 1000, altMode = 'AGL', seaLevelTemp = 25, dragFromRef, onReorder }) {
   const { t } = useTheme()
   const [utmMode, setUtmMode]           = useState(true)
   const [utm, setUtm]                   = useState({ zone: '36', easting: '', northingPfx: '', northingRest: '' })
@@ -68,6 +72,7 @@ function WaypointCard({ index, wp, isActive, isTarget, isCsp, cspFuel, onSelect,
   const [derivedUtm, setDerivedUtm]     = useState(null)
   const [isDragOver, setIsDragOver]     = useState(false)
   const [surfaceAltAuto, setSurfaceAltAuto] = useState(true)
+  const [refreshing, setRefreshing]     = useState(false)
   const [cspMode, setCspMode]           = useState('fuel')   // 'fuel' | 'oge' | 'ige'
   const [cspInput, setCspInput]         = useState('')
   const [confirmDel, setConfirmDel]     = useState(false)
@@ -152,8 +157,30 @@ function WaypointCard({ index, wp, isActive, isTarget, isCsp, cspFuel, onSelect,
   // Shared input style
   const si = {
     background: t.bg3, border: `1px solid ${t.border0}`,
-    borderRadius: 3, padding: '2px 5px', color: t.text0, fontSize: 11,
+    borderRadius: 3, padding: '3px 5px', color: t.text0, fontSize: 12,
     fontFamily: t.font, boxSizing: 'border-box',
+  }
+
+  // Fetch elevation for current position and refresh surface alt, alt ft, and OAT
+  const handleRefresh = async () => {
+    const lat = parseFloat(wp.lat)
+    const lon = parseFloat(wp.lon)
+    if (isNaN(lat) || isNaN(lon)) return
+    setRefreshing(true)
+    try {
+      const { elevation_ft } = await fetchElevation(lat, lon)
+      const newAlt = altMode === 'MSL' ? aglOffset : Math.round(elevation_ft + aglOffset)
+      onUpdate('surface_alt_ft', String(Math.round(elevation_ft)))
+      setSurfaceAltAuto(true)
+      onUpdate('alt_ft', String(newAlt))
+      const newOat = Math.round(((seaLevelTemp) - (newAlt / 1000) * 1.98) * 10) / 10
+      onUpdate('oat_c', String(newOat))
+      onUpdate('oat_auto', true)
+    } catch {
+      // silently ignore — elevation service not available
+    } finally {
+      setRefreshing(false)
+    }
   }
 
   // Renders a digit-only (or sign+digit) input that updates a single waypoint field
@@ -211,7 +238,7 @@ function WaypointCard({ index, wp, isActive, isTarget, isCsp, cspFuel, onSelect,
       }}
     >
       {/* Card header — always visible */}
-      <div onClick={onSelect} style={{ padding: '5px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div onClick={onSelect} style={{ padding: '7px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span
             onMouseDown={e => e.stopPropagation()}
@@ -219,20 +246,20 @@ function WaypointCard({ index, wp, isActive, isTarget, isCsp, cspFuel, onSelect,
             title="Drag to reorder"
           >⠿</span>
           <div style={{
-            width: 20, height: 20, borderRadius: '50%',
+            width: 22, height: 22, borderRadius: '50%',
             background: isActive ? t.border1 : t.border2,
             border: `1px solid ${isActive ? t.border1 : t.border0}`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 10, fontWeight: 700, color: isActive ? t.bg0 : t.text1, flexShrink: 0,
+            fontSize: 11, fontWeight: 700, color: isActive ? t.bg0 : t.text1, flexShrink: 0,
           }}>{index + 1}</div>
-          <span style={{ fontSize: 12, fontWeight: 700, color: isActive ? t.text0 : t.text1, letterSpacing: 1 }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: isActive ? t.text0 : t.text1, letterSpacing: 1 }}>
             {wp.name || `WP${index + 1}`}
           </span>
           <button
             onClick={e => { e.stopPropagation(); onSetTarget() }}
             title={isTarget ? 'Clear TOT' : 'Set Time on Target'}
             style={{
-              padding: '1px 6px', fontSize: 11, borderRadius: 3, cursor: 'pointer',
+              padding: '2px 7px', fontSize: 12, borderRadius: 3, cursor: 'pointer',
               fontFamily: t.font, fontWeight: 700, letterSpacing: 0,
               background: isTarget ? t.bg4 : 'transparent',
               color: isTarget ? t.accent : t.text3,
@@ -243,7 +270,7 @@ function WaypointCard({ index, wp, isActive, isTarget, isCsp, cspFuel, onSelect,
             onClick={e => { e.stopPropagation(); onSetCsp?.() }}
             title={isCsp ? 'Clear CSP' : 'Set as Calculation Start Point'}
             style={{
-              padding: '1px 6px', fontSize: 11, borderRadius: 3, cursor: 'pointer',
+              padding: '2px 7px', fontSize: 12, borderRadius: 3, cursor: 'pointer',
               fontFamily: t.font, fontWeight: 700, letterSpacing: 0,
               background: isCsp ? t.bg4 : 'transparent',
               color: isCsp ? t.caution : t.text3,
@@ -254,12 +281,12 @@ function WaypointCard({ index, wp, isActive, isTarget, isCsp, cspFuel, onSelect,
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
           {wp.lat && wp.lon && (
             <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: 9, color: t.text2 }}>
+              <div style={{ fontSize: 11, color: t.text2 }}>
                 {parseFloat(wp.lat).toFixed(4)}° {parseFloat(wp.lon).toFixed(4)}°
               </div>
               {derivedUtm && (() => {
                 const ns = String(Math.round(derivedUtm.northing))
-                return <div style={{ fontSize: 9, color: t.text3 }}>{derivedUtm.zone} · {Math.round(derivedUtm.easting)} · {ns[0]} · {ns.slice(1)}</div>
+                return <div style={{ fontSize: 10, color: t.text3 }}>{derivedUtm.zone} · {Math.round(derivedUtm.easting)} · {ns[0]} · {ns.slice(1)}</div>
               })()}
             </div>
           )}
@@ -279,116 +306,114 @@ function WaypointCard({ index, wp, isActive, isTarget, isCsp, cspFuel, onSelect,
 
       {/* Expanded editor — shown only for the active waypoint */}
       {isActive && (
-        <div style={{ padding: '7px 10px', borderTop: `1px solid ${t.border0}` }}>
+        <div style={{ padding: '10px 12px', borderTop: `1px solid ${t.border0}`, display: 'flex', flexDirection: 'column', gap: 8 }}>
 
           {/* ── NAME ── */}
-          <div style={{ marginBottom: 7 }}>
+          <div>
             <FL t={t}>NAME</FL>
             <input
               value={wp.name || ''}
               maxLength={25}
               onChange={e => onUpdate('name', e.target.value)}
               placeholder={`WP${index + 1}`}
-              style={{ ...si, width: '25ch' }}
+              style={{ ...si, width: '100%' }}
             />
           </div>
 
           {/* ── Coordinates ── */}
-          <div style={{ marginBottom: 7 }}>
-            <div style={{ display: 'flex', gap: 5, alignItems: 'flex-end', flexWrap: 'wrap' }}>
-              {/* UTM / GEO mode toggle */}
-              <div style={{ display: 'flex', gap: 3, alignSelf: 'flex-end', paddingBottom: 1 }}>
-                {[['UTM', true, switchToUtm], ['GEO', false, () => { setUtmErr(''); setUtmMode(false) }]].map(([label, active, fn]) => (
-                  <button key={label} onClick={fn} style={{
-                    padding: '2px 7px', fontSize: 10, borderRadius: 3,
-                    border: `1px solid ${(utmMode === active) ? t.border1 : t.border0}`,
-                    cursor: 'pointer',
-                    background: (utmMode === active) ? t.bg4 : t.bg2,
-                    color: (utmMode === active) ? t.text0 : t.text2,
-                    fontFamily: t.font, letterSpacing: 1, fontWeight: 700,
-                  }}>{label}</button>
-                ))}
-              </div>
-
-              {utmMode ? (
-                <>
-                  <div>
-                    <FL t={t}>ZONE</FL>
-                    <input
-                      value={utm.zone}
-                      maxLength={2}
-                      onChange={e => setUtm(u => ({...u, zone: e.target.value.replace(/\D/g, '').slice(0, 2)}))}
-                      placeholder="36"
-                      style={{ ...si, width: 26, textAlign: 'center' }}
-                    />
-                  </div>
-                  <div>
-                    {/* Leading digit of northing (e.g. "3" for ~3,480,000 m) */}
-                    <FL t={t}>N</FL>
-                    <input
-                      value={utm.northingPfx}
-                      maxLength={1}
-                      onChange={e => setUtm(u => ({...u, northingPfx: e.target.value.replace(/\D/g, '').slice(0, 1)}))}
-                      placeholder="3"
-                      style={{ ...si, width: 18, textAlign: 'center' }}
-                    />
-                  </div>
-                  <div>
-                    <FL t={t}>EASTING</FL>
-                    <input
-                      value={utm.easting}
-                      maxLength={6}
-                      onChange={e => {
-                        const val = e.target.value.replace(/\D/g, '').slice(0, 6)
-                        setUtm(u => ({...u, easting: val}))
-                        // Auto-advance to northing once easting is complete
-                        if (val.length === 6) northingRestRef.current?.focus()
-                      }}
-                      placeholder="674335"
-                      style={{ ...si, width: 56 }}
-                    />
-                  </div>
-                  <div>
-                    <FL t={t}>NORTHING</FL>
-                    <input
-                      ref={northingRestRef}
-                      value={utm.northingRest}
-                      maxLength={6}
-                      onChange={e => {
-                        const val = e.target.value.replace(/\D/g, '').slice(0, 6)
-                        setUtm(u => ({...u, northingRest: val}))
-                      }}
-                      placeholder="480879"
-                      style={{ ...si, width: 56 }}
-                    />
-                  </div>
-                  {utmErr && <span style={{ color: t.warn, fontSize: 10, alignSelf: 'flex-end', paddingBottom: 3 }}>{utmErr}</span>}
-                </>
-              ) : (
-                <>
-                  <div>
-                    <FL t={t}>LATITUDE</FL>
-                    <input
-                      value={wp.lat}
-                      maxLength={10}
-                      onChange={e => onUpdate('lat', e.target.value)}
-                      placeholder="32.0853"
-                      style={{ ...si, width: 88 }}
-                    />
-                  </div>
-                  <div>
-                    <FL t={t}>LONGITUDE</FL>
-                    <input
-                      value={wp.lon}
-                      maxLength={10}
-                      onChange={e => onUpdate('lon', e.target.value)}
-                      placeholder="34.7818"
-                      style={{ ...si, width: 88 }}
-                    />
-                  </div>
-                </>
-              )}
+          <div style={{ background: t.bg2, borderRadius: 5, border: `1px solid ${t.border0}`, padding: '8px 10px' }}>
+            {/* UTM / GEO segmented toggle */}
+            <div style={{ display: 'flex', marginBottom: 8, borderRadius: 4, overflow: 'hidden', border: `1px solid ${t.border0}` }}>
+              {[['UTM', true, switchToUtm], ['GEO', false, () => { setUtmErr(''); setUtmMode(false) }]].map(([label, active, fn]) => (
+                <button key={label} onClick={fn} style={{
+                  flex: 1, padding: '5px 0', fontSize: 11, border: 'none',
+                  borderRight: label === 'UTM' ? `1px solid ${t.border0}` : 'none',
+                  cursor: 'pointer',
+                  background: (utmMode === active) ? t.border1 : t.bg3,
+                  color: (utmMode === active) ? '#fff' : t.text2,
+                  fontFamily: t.font, letterSpacing: 2, fontWeight: 700,
+                }}>{label}</button>
+              ))}
             </div>
+
+            {utmMode ? (
+              <div style={{ display: 'flex', gap: 6, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                <div>
+                  <FL t={t}>ZONE</FL>
+                  <input
+                    value={utm.zone}
+                    maxLength={2}
+                    onChange={e => setUtm(u => ({...u, zone: e.target.value.replace(/\D/g, '').slice(0, 2)}))}
+                    placeholder="36"
+                    style={{ ...si, width: 34, textAlign: 'center' }}
+                  />
+                </div>
+                <div>
+                  <FL t={t}>N</FL>
+                  <input
+                    value={utm.northingPfx}
+                    maxLength={1}
+                    onChange={e => setUtm(u => ({...u, northingPfx: e.target.value.replace(/\D/g, '').slice(0, 1)}))}
+                    placeholder="3"
+                    style={{ ...si, width: 26, textAlign: 'center' }}
+                  />
+                </div>
+                <div>
+                  <FL t={t}>EASTING</FL>
+                  <input
+                    value={utm.easting}
+                    maxLength={6}
+                    onChange={e => {
+                      const val = e.target.value.replace(/\D/g, '').slice(0, 6)
+                      setUtm(u => ({...u, easting: val}))
+                      if (val.length === 6) northingRestRef.current?.focus()
+                    }}
+                    placeholder="674335"
+                    style={{ ...si, width: 64 }}
+                  />
+                </div>
+                <div>
+                  <FL t={t}>NORTHING</FL>
+                  <input
+                    ref={northingRestRef}
+                    value={utm.northingRest}
+                    maxLength={6}
+                    onChange={e => {
+                      const val = e.target.value.replace(/\D/g, '').slice(0, 6)
+                      setUtm(u => ({...u, northingRest: val}))
+                    }}
+                    placeholder="480879"
+                    style={{ ...si, width: 64 }}
+                  />
+                </div>
+                {utmErr && <span style={{ color: t.warn, fontSize: 11, alignSelf: 'flex-end', paddingBottom: 3 }}>{utmErr}</span>}
+                <UpdateBtn t={t} refreshing={refreshing} disabled={!wp.lat || !wp.lon} onClick={handleRefresh} />
+              </div>
+            ) : (
+              <div style={{ display: 'flex', gap: 6, alignItems: 'flex-end' }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <FL t={t}>LAT</FL>
+                  <input
+                    value={wp.lat}
+                    maxLength={10}
+                    onChange={e => onUpdate('lat', e.target.value)}
+                    placeholder="32.0853"
+                    style={{ ...si, width: '100%' }}
+                  />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <FL t={t}>LON</FL>
+                  <input
+                    value={wp.lon}
+                    maxLength={10}
+                    onChange={e => onUpdate('lon', e.target.value)}
+                    placeholder="34.7818"
+                    style={{ ...si, width: '100%' }}
+                  />
+                </div>
+                <UpdateBtn t={t} refreshing={refreshing} disabled={!wp.lat || !wp.lon} onClick={handleRefresh} />
+              </div>
+            )}
           </div>
 
           {/* ── ALT / SURFACE / TAS / OAT ── */}
@@ -400,73 +425,74 @@ function WaypointCard({ index, wp, isActive, isTarget, isCsp, cspFuel, onSelect,
             const belowTerrain = hasAlt && hasSurf && userAlt < surfAlt
             const nearTerrain  = hasAlt && hasSurf && userAlt >= surfAlt && userAlt < surfAlt + 100
             return (
-          <div style={{ display: 'flex', gap: 6, marginBottom: 6, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-            <div>
-              <FL t={t}>ALT FT</FL>
-              {numInput('alt_ft', wp.alt_ft, 6, { placeholder: '1000', allowNeg: true, min: -2000, max: 12000 })}
-              {belowTerrain && (
-                <div style={{ fontSize: 8, color: t.warn, marginTop: 2, letterSpacing: 0.5, maxWidth: 70 }}>
-                  ⚠ BELOW DSM<br/><span style={{ color: t.text3 }}>surf {surfAlt} ft</span>
+              <div style={{ background: t.bg2, borderRadius: 5, border: `1px solid ${t.border0}`, padding: '8px 10px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 10px' }}>
+                  <div>
+                    <FL t={t}>ALT FT</FL>
+                    {numInput('alt_ft', wp.alt_ft, 6, { placeholder: '1000', allowNeg: true, min: -2000, max: 12000, width: '100%', style: { width: '100%' } })}
+                    {belowTerrain && (
+                      <div style={{ fontSize: 10, color: t.warn, marginTop: 3, letterSpacing: 0.5 }}>
+                        ⚠ BELOW DSM · surf {surfAlt} ft
+                      </div>
+                    )}
+                    {nearTerrain && (
+                      <div style={{ fontSize: 10, color: t.caution, marginTop: 3, letterSpacing: 0.5 }}>
+                        ◆ NEAR DSM · +{Math.round(userAlt - surfAlt)} ft clr
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <FL t={t}>SURFACE{altMode === 'MSL' ? ' *' : ''}</FL>
+                    <input
+                      value={wp.surface_alt_ft ?? ''}
+                      maxLength={5}
+                      onChange={e => {
+                        const v = e.target.value.replace(/\D/g, '').slice(0, 5)
+                        setSurfaceAltAuto(false)
+                        onUpdate('surface_alt_ft', v)
+                      }}
+                      placeholder="DSM"
+                      style={{ ...si, width: '100%', color: surfaceAltAuto ? t.text2 : t.text0 }}
+                    />
+                  </div>
+                  <div>
+                    <FL t={t}>TAS KTS</FL>
+                    {numInput('airspeed_kts', wp.airspeed_kts, 3, { placeholder: '120', min: 0, max: 150, style: { width: '100%' } })}
+                  </div>
+                  <div>
+                    <FL t={t}>OAT °C{wp.oat_auto ? <span style={{ color: t.ok, fontSize: 10, marginLeft: 4 }}>ELR</span> : null}</FL>
+                    {numInput('oat_c', wp.oat_c, 3, { placeholder: '25', allowNeg: true, min: -15, max: 50, style: { width: '100%' } })}
+                  </div>
                 </div>
-              )}
-              {nearTerrain && (
-                <div style={{ fontSize: 8, color: t.caution, marginTop: 2, letterSpacing: 0.5, maxWidth: 70 }}>
-                  ◆ NEAR DSM<br/><span style={{ color: t.text3 }}>+{Math.round(userAlt - surfAlt)} ft clr</span>
-                </div>
-              )}
-            </div>
-            <div>
-              {/* Asterisk when MSL mode: surface alt is used only for AGL↔MSL display conversion */}
-              <FL t={t}>SURFACE{altMode === 'MSL' ? '*' : ''}</FL>
-              <input
-                value={wp.surface_alt_ft ?? ''}
-                maxLength={5}
-                onChange={e => {
-                  const v = e.target.value.replace(/\D/g, '').slice(0, 5)
-                  setSurfaceAltAuto(false)
-                  onUpdate('surface_alt_ft', v)
-                }}
-                placeholder="DSM"
-                // Dim the value when it was filled automatically from SRTM
-                style={{ ...si, width: `${5 * 9 + 12}px`, color: surfaceAltAuto ? t.text2 : t.text0 }}
-              />
-            </div>
-            <div>
-              <FL t={t}>TAS KTS</FL>
-              {numInput('airspeed_kts', wp.airspeed_kts, 3, { placeholder: '120', min: 0, max: 150 })}
-            </div>
-            <div>
-              {/* ELR badge shown when OAT is derived from environmental lapse rate */}
-              <FL t={t}>OAT °C{wp.oat_auto ? <span style={{ color: t.ok, fontSize: 8, marginLeft: 3 }}>ELR</span> : null}</FL>
-              {numInput('oat_c', wp.oat_c, 3, { placeholder: '25', allowNeg: true, min: -15, max: 50 })}
-            </div>
-          </div>
+              </div>
             )
           })()}
 
           {/* ── Wind ── */}
-          <div style={{ display: 'flex', gap: 6, alignItems: 'flex-end', marginBottom: 6, paddingBottom: 6, borderBottom: `1px solid ${t.border0}` }}>
-            <div>
-              <FL t={t}>WIND DIR °</FL>
-              {numInput('wind_dir', wp.wind_dir, 3, { placeholder: '0', min: 0, max: 360 })}
-            </div>
-            <div>
-              <FL t={t}>WIND SPEED KTS</FL>
-              {numInput('wind_speed_kts', wp.wind_speed_kts, 3, { placeholder: '0', min: 0, max: 50 })}
+          <div style={{ background: t.bg2, borderRadius: 5, border: `1px solid ${t.border0}`, padding: '8px 10px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 10px' }}>
+              <div>
+                <FL t={t}>WIND DIR °</FL>
+                {numInput('wind_dir', wp.wind_dir, 3, { placeholder: '0', min: 0, max: 360, style: { width: '100%' } })}
+              </div>
+              <div>
+                <FL t={t}>WIND SPEED KTS</FL>
+                {numInput('wind_speed_kts', wp.wind_speed_kts, 3, { placeholder: '0', min: 0, max: 50, style: { width: '100%' } })}
+              </div>
             </div>
           </div>
 
           {/* ── Hold / waiting ── */}
-          <div style={{ marginBottom: 6, paddingBottom: 6, borderBottom: `1px solid ${t.border0}` }}>
+          <div style={{ background: t.bg2, borderRadius: 5, border: `1px solid ${t.border0}`, padding: '8px 10px' }}>
             <FL t={t}>HOLD / WAITING</FL>
-            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 4 }}>
+            <div style={{ display: 'flex', gap: 5, marginBottom: wp.hold_type ? 8 : 0 }}>
               {[['ground','GND'],['hover','HOVER'],['endurance','ENDURANCE']].map(([type, label]) => {
                 const active = wp.hold_type === type
                 return (
                   <button key={type} onClick={() => onUpdate('hold_type', active ? null : type)} style={{
-                    padding: '2px 8px', fontSize: 9, borderRadius: 3, cursor: 'pointer',
-                    fontFamily: t.font, fontWeight: active ? 700 : 400, letterSpacing: 1,
-                    background: active ? t.bg4 : t.bg2,
+                    flex: 1, padding: '5px 4px', fontSize: 11, borderRadius: 3, cursor: 'pointer',
+                    fontFamily: t.font, fontWeight: 700, letterSpacing: 1,
+                    background: active ? t.caution + '22' : t.bg3,
                     color: active ? t.caution : t.text3,
                     border: `1px solid ${active ? t.caution : t.border0}`,
                   }}>{label}</button>
@@ -474,28 +500,28 @@ function WaypointCard({ index, wp, isActive, isTarget, isCsp, cspFuel, onSelect,
               })}
             </div>
             {wp.hold_type && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <input
                     value={wp.hold_min ?? '5'}
                     maxLength={3}
                     onChange={e => onUpdate('hold_min', e.target.value.replace(/\D/g, '').slice(0, 3))}
-                    style={{ width: 34, background: t.bg2, border: `1px solid ${t.caution}`, borderRadius: 3, padding: '2px 4px', color: t.caution, fontSize: 11, fontFamily: t.font, textAlign: 'center' }}
+                    style={{ width: 44, background: t.bg3, border: `1px solid ${t.caution}`, borderRadius: 3, padding: '4px 6px', color: t.caution, fontSize: 12, fontFamily: t.font, textAlign: 'center' }}
                   />
-                  <span style={{ fontSize: 9, color: t.text3 }}>MIN</span>
+                  <span style={{ fontSize: 11, color: t.text3 }}>MIN</span>
                 </div>
                 {wp.hold_type === 'endurance' && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <input
                       value={wp.hold_speed_kts ?? '80'}
                       maxLength={3}
                       onChange={e => onUpdate('hold_speed_kts', e.target.value.replace(/\D/g, '').slice(0, 3))}
-                      style={{ width: 34, background: t.bg2, border: `1px solid ${t.border0}`, borderRadius: 3, padding: '2px 4px', color: t.text0, fontSize: 11, fontFamily: t.font, textAlign: 'center' }}
+                      style={{ width: 44, background: t.bg3, border: `1px solid ${t.border0}`, borderRadius: 3, padding: '4px 6px', color: t.text0, fontSize: 12, fontFamily: t.font, textAlign: 'center' }}
                     />
-                    <span style={{ fontSize: 9, color: t.text3 }}>KTS</span>
+                    <span style={{ fontSize: 11, color: t.text3 }}>KTS</span>
                   </div>
                 )}
-                <span style={{ fontSize: 8, color: t.text3, fontStyle: 'italic' }}>
+                <span style={{ fontSize: 11, color: t.text3, fontStyle: 'italic' }}>
                   {wp.hold_type === 'ground'   ? 'FF = 475 lb/hr' :
                    wp.hold_type === 'hover'    ? 'FF from OGE torque' :
                                                  'FF at endurance speed'}
@@ -504,15 +530,15 @@ function WaypointCard({ index, wp, isActive, isTarget, isCsp, cspFuel, onSelect,
             )}
           </div>
 
-          {/* ── Spare % — positive adds fuel reserve, negative reduces it ── */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {/* ── Spare % ── */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div>
               <FL t={t}>SPARE %</FL>
               {numInput('spare_pct', wp.spare_pct, 3, { placeholder: '0', allowNeg: true, min: -5, max: 40 })}
             </div>
-            <div style={{ paddingTop: 14 }}>
-              <span style={{ fontSize: 9, color: t.text3, fontStyle: 'italic' }}>
-                −5 to 40 · applies onwards · {parseInt(wp.spare_pct) > 0 ? `+${wp.spare_pct}%` : `${wp.spare_pct || 0}%`} FF
+            <div style={{ paddingTop: 16 }}>
+              <span style={{ fontSize: 11, color: t.text3, fontStyle: 'italic' }}>
+                −5 to +40 · applies onwards
               </span>
             </div>
           </div>
@@ -657,5 +683,26 @@ function WaypointCard({ index, wp, isActive, isTarget, isCsp, cspFuel, onSelect,
 
 // Field label — small uppercase caption above an input
 function FL({ children, t }) {
-  return <div style={{ fontSize: 9, color: t.text3, marginBottom: 2, letterSpacing: 1 }}>{children}</div>
+  return <div style={{ fontSize: 11, color: t.text3, marginBottom: 3, letterSpacing: 1 }}>{children}</div>
+}
+
+// Small inline UPDATE button used inside the coordinate block
+function UpdateBtn({ t, refreshing, disabled, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={refreshing || disabled}
+      title="Refresh surface alt, alt ft and OAT from current position"
+      style={{
+        flexShrink: 0, alignSelf: 'flex-end',
+        padding: '3px 10px', fontSize: 11, fontWeight: 700, letterSpacing: 1,
+        borderRadius: 3, cursor: (refreshing || disabled) ? 'default' : 'pointer',
+        fontFamily: t.font,
+        background: refreshing ? t.bg3 : t.bg4,
+        color: refreshing ? t.text3 : t.accent,
+        border: `1px solid ${refreshing ? t.border0 : t.border1}`,
+        opacity: disabled ? 0.4 : 1,
+      }}
+    >{refreshing ? '…' : '↻'}</button>
+  )
 }

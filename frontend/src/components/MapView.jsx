@@ -3,6 +3,30 @@ import { useEffect, useRef, useState } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { useTheme } from '../theme.jsx'
+import { fetchElevation, fetchTileZoomLimits } from '../api.js'
+
+// Local WGS84 → UTM conversion (no API round-trip, instant)
+function toUtm(lat, lon) {
+  const a = 6378137.0, e2 = 0.00669437999014, k0 = 0.9996
+  const zone = Math.floor((lon + 180) / 6) + 1
+  const lon0 = ((zone - 1) * 6 - 180 + 3) * Math.PI / 180
+  const latR = lat * Math.PI / 180, lonR = lon * Math.PI / 180
+  const ep2 = e2 / (1 - e2)
+  const N = a / Math.sqrt(1 - e2 * Math.sin(latR) ** 2)
+  const T = Math.tan(latR) ** 2
+  const C = ep2 * Math.cos(latR) ** 2
+  const A = Math.cos(latR) * (lonR - lon0)
+  const M = a * (
+    (1 - e2/4 - 3*e2**2/64 - 5*e2**3/256) * latR
+    - (3*e2/8 + 3*e2**2/32 + 45*e2**3/1024) * Math.sin(2*latR)
+    + (15*e2**2/256 + 45*e2**3/1024) * Math.sin(4*latR)
+    - (35*e2**3/3072) * Math.sin(6*latR)
+  )
+  const easting = k0 * N * (A + (1-T+C)*A**3/6 + (5-18*T+T**2+72*C-58*ep2)*A**5/120) + 500000
+  let northing = k0 * (M + N * Math.tan(latR) * (A**2/2 + (5-T+9*C+4*C**2)*A**4/24 + (61-58*T+T**2+600*C-330*ep2)*A**6/720))
+  if (lat < 0) northing += 10000000
+  return { zone, hemi: lat >= 0 ? 'N' : 'S', easting: Math.round(easting), northing: Math.round(northing) }
+}
 
 delete L.Icon.Default.prototype._getIconUrl
 L.Icon.Default.mergeOptions({
@@ -25,9 +49,9 @@ const TILE_URLS = {
   },
 }
 
-// Max zoom per mode
-const MAX_ZOOM_BY_MODE = { map: 19, topo: 17, dem: 11 }
-const MAX_ZOOM_OFFLINE = { map: 11, topo: 14, dem: 11 }
+// Max zoom per mode (online CDN limits; offline is fetched dynamically from /api/data-status)
+const MAX_ZOOM_BY_MODE    = { map: 19, topo: 17, dem: 11 }
+const MAX_ZOOM_OFFLINE_DEFAULT = { map: 11, topo: 14, dem: 11 }
 
 function makeIcon(index, isActive, isHighlighted, t, routeColor) {
   const rc     = routeColor ?? t.accent
@@ -92,6 +116,12 @@ export default function MapView({ waypoints, results, activeWpt, onMapClick, onM
   const tileLayerRef  = useRef(null)
   const [mapMode,    setMapMode]    = useState('map')   // 'map' | 'topo' | 'dem'
   const [zoomLevel,  setZoomLevel]  = useState(8)
+  const [maxZoomOffline, setMaxZoomOffline] = useState(MAX_ZOOM_OFFLINE_DEFAULT)
+
+  useEffect(() => {
+    if (tileMode !== 'offline') return
+    fetchTileZoomLimits().then(limits => { if (limits) setMaxZoomOffline(limits) })
+  }, [tileMode])  // eslint-disable-line
   const markersRef    = useRef([])
   const routeRef      = useRef(null)
   const highlightRef  = useRef(null)
@@ -102,6 +132,9 @@ export default function MapView({ waypoints, results, activeWpt, onMapClick, onM
   const alertMarkersRef = useRef([])
   const waypointsRef  = useRef(waypoints)
   useEffect(() => { waypointsRef.current = waypoints }, [waypoints])
+  const [hoverInfo,   setHoverInfo]   = useState(null)
+  const hoverTimerRef = useRef(null)
+  const hoverPosRef   = useRef(null)
 
   useEffect(() => {
     if (tileLayerRef.current) tileLayerRef.current.setOpacity(opacity)
@@ -132,7 +165,7 @@ export default function MapView({ waypoints, results, activeWpt, onMapClick, onM
 
   useEffect(() => {
     if (mapRef.current) return
-    const initMz = (tileMode === 'online' ? MAX_ZOOM_BY_MODE : MAX_ZOOM_OFFLINE)['map']
+    const initMz = (tileMode === 'online' ? MAX_ZOOM_BY_MODE : maxZoomOffline)['map']
     const map = L.map(containerRef.current, { center: [31.5, 34.8], zoom: 8, maxZoom: initMz })
     tileLayerRef.current = L.tileLayer(TILE_URLS[tileMode]?.map ?? TILE_URLS.offline.map, {
       maxZoom: initMz, maxNativeZoom: initMz, opacity,
@@ -140,8 +173,37 @@ export default function MapView({ waypoints, results, activeWpt, onMapClick, onM
     }).addTo(map)
     map.on('click', e => onMapClick(e.latlng.lat, e.latlng.lng))
     map.on('zoomend', () => setZoomLevel(map.getZoom()))
+
+    // Hover: UTM is instant (local JS), elevation is debounced via API
+    map.on('mousemove', e => {
+      const { lat, lng } = e.latlng
+      hoverPosRef.current = { lat, lng }
+      // Update UTM immediately — no API needed
+      const utm = toUtm(lat, lng)
+      setHoverInfo(prev => ({ ...utm, elev: prev?.elev ?? null }))
+      // Debounce only the elevation fetch
+      clearTimeout(hoverTimerRef.current)
+      hoverTimerRef.current = setTimeout(async () => {
+        const pos = hoverPosRef.current
+        if (!pos) return
+        try {
+          const elevData = await fetchElevation(pos.lat, pos.lng)
+          setHoverInfo(prev => prev ? { ...prev, elev: Math.round(elevData.elevation_ft) } : null)
+        } catch { /* ignore */ }
+      }, 180)
+    })
+    map.on('mouseout', () => {
+      clearTimeout(hoverTimerRef.current)
+      hoverPosRef.current = null
+      setHoverInfo(null)
+    })
+
     mapRef.current = map
-    return () => { map.remove(); mapRef.current = null }
+    return () => {
+      clearTimeout(hoverTimerRef.current)
+      map.remove()
+      mapRef.current = null
+    }
   }, [])   // eslint-disable-line
 
   useEffect(() => {
@@ -156,14 +218,14 @@ export default function MapView({ waypoints, results, activeWpt, onMapClick, onM
     if (tileLayerRef.current) tileLayerRef.current.remove()
     const urls = TILE_URLS[tileMode] ?? TILE_URLS.offline
     const url  = mapMode === 'dem' ? urls.dem : mapMode === 'topo' ? urls.topo : urls.map
-    const mzMap = tileMode === 'online' ? MAX_ZOOM_BY_MODE : MAX_ZOOM_OFFLINE
+    const mzMap = tileMode === 'online' ? MAX_ZOOM_BY_MODE : maxZoomOffline
     const mz   = mzMap[mapMode]
     mapRef.current.setMaxZoom(mz)
     tileLayerRef.current = L.tileLayer(url, {
       maxZoom: mz, maxNativeZoom: mz, opacity,
       errorTileUrl: '',
     }).addTo(mapRef.current)
-  }, [mapMode, tileMode])   // eslint-disable-line
+  }, [mapMode, tileMode, maxZoomOffline])   // eslint-disable-line
 
   // ── Resize map when container changes (e.g. panel fold/unfold) ──────────────
   useEffect(() => {
@@ -403,7 +465,7 @@ export default function MapView({ waypoints, results, activeWpt, onMapClick, onM
         fontSize: 9, fontWeight: 700, fontFamily: t.font,
         color: t.text2, letterSpacing: 1, pointerEvents: 'none',
       }}>
-        Z {zoomLevel} / {(tileMode === 'online' ? MAX_ZOOM_BY_MODE : MAX_ZOOM_OFFLINE)[mapMode]}
+        Z {zoomLevel} / {(tileMode === 'online' ? MAX_ZOOM_BY_MODE : maxZoomOffline)[mapMode]}
       </div>
 
       {/* Map / TOPO / ELEV toggle — bottom left, above attribution */}
@@ -415,6 +477,27 @@ export default function MapView({ waypoints, results, activeWpt, onMapClick, onM
           >{label}</button>
         ))}
       </div>
+
+      {/* Hover coordinate + elevation HUD — bottom center */}
+      {hoverInfo && (
+        <div style={{
+          position: 'absolute', bottom: 24, left: '50%', transform: 'translateX(-50%)',
+          zIndex: 2000, pointerEvents: 'none',
+          background: t.bg0 + 'ee',
+          border: `1px solid ${t.border1}`,
+          borderRadius: 4, padding: '4px 14px',
+          display: 'flex', alignItems: 'center', gap: 10,
+          fontFamily: t.font, fontSize: 11, fontWeight: 700, letterSpacing: 0.5,
+          whiteSpace: 'nowrap',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+        }}>
+          <span style={{ color: t.accent }}>{hoverInfo.zone}{hoverInfo.hemi}</span>
+          <span style={{ color: t.text1 }}>{hoverInfo.easting}</span>
+          <span style={{ color: t.text1 }}>{hoverInfo.northing}</span>
+          <span style={{ color: t.border1 }}>|</span>
+          <span style={{ color: t.text2 }}>▲ {hoverInfo.elev !== null ? hoverInfo.elev.toLocaleString() + ' ft' : '…'}</span>
+        </div>
+      )}
     </div>
   )
 }

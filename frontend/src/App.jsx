@@ -6,8 +6,9 @@ import ResultsTable from './components/ResultsTable.jsx'
 import WingStoresPanel from './components/WingStoresPanel.jsx'
 import RoutePanel, { ROUTE_COLORS } from './components/RoutePanel.jsx'
 import WcaPanel from './components/WcaPanel.jsx'
+import EasterEggGame from './components/EasterEggGame.jsx'
 import UtmEntryModal from './components/UtmEntryModal.jsx'
-import { calculateFlightPlan, fetchElevation, utmToLatLon, cspFuelFromOge, cspFuelFromIge } from './api.js'
+import { calculateFlightPlan, fetchElevation, utmToLatLon, cspFuelFromOge, cspFuelFromIge, suggestClimbSpeed } from './api.js'
 import { exportFlightTable, exportExcel, importFromExcel, utmToLatLon as utmToLatLonJS } from './exportTable.js'
 import * as XLSX from 'xlsx'
 import { useTheme } from './theme.jsx'
@@ -98,6 +99,29 @@ const ROUTE_CONFIG_DEFAULTS = {
 
 const STORAGE_KEY = 'raner_x_v3'
 const loadSaved = () => { try { const s = localStorage.getItem(STORAGE_KEY); return s ? JSON.parse(s) : {} } catch { return {} } }
+
+function SideBtn({ icon, label, tip, onClick, t, warn = false, accent = false }) {
+  const baseColor  = warn ? t.warn : accent ? t.accent : t.text2
+  const baseBorder = warn ? t.warn : accent ? t.border1 : t.border0
+  return (
+    <button onClick={onClick} title={tip} style={{
+      width: 46, height: 46, background: 'none',
+      border: `1px solid ${baseBorder}`,
+      borderRadius: 6, cursor: 'pointer', color: baseColor,
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+      gap: 2, fontFamily: t.font, transition: 'all 0.12s', flexShrink: 0,
+    }}
+    onMouseEnter={e => { e.currentTarget.style.background = t.bg2; e.currentTarget.style.color = warn ? t.warn : t.accent; e.currentTarget.style.borderColor = warn ? t.warn : t.accent }}
+    onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = baseColor; e.currentTarget.style.borderColor = baseBorder }}>
+      <span style={{ fontSize: 16, lineHeight: 1 }}>{icon}</span>
+      <span style={{ fontSize: 8, letterSpacing: 0.5, fontWeight: 700 }}>{label}</span>
+    </button>
+  )
+}
+
+function SideSep({ t }) {
+  return <div style={{ width: 36, height: 1, background: t.border0, margin: '3px 0', flexShrink: 0 }} />
+}
 
 export default function App() {
   const { t, themeName, toggle } = useTheme()
@@ -212,6 +236,8 @@ export default function App() {
   const [tableFullscreen, setTableFullscreen] = useState(false)
   const [mapOpacity,      setMapOpacity]      = useState(100)
   const [showAbout,      setShowAbout]      = useState(false)
+  const [showEasterEgg,  setShowEasterEgg]  = useState(false)
+  const logoClickRef = useRef({ count: 0, timer: null })
   const [dataStatus,     setDataStatus]     = useState(null)
   const [tileMode,       setTileMode]       = useState(() => localStorage.getItem('tileMode') || 'offline')
   const [showHelp,       setShowHelp]       = useState(false)
@@ -229,6 +255,8 @@ export default function App() {
   const [pendingSet,     setPendingSet]   = useState(SETTINGS_DEFAULTS)
   const [confirmStep,    setConfirmStep]  = useState(0) // 0=edit 1=confirm1 2=confirm2
   const [stopAlert,    setStopAlert]    = useState(null)  // null | StopAlert — mid-leg halt position
+  const [suggestLoading, setSuggestLoading] = useState(false)
+  const [suggestResult,  setSuggestResult]  = useState(null)  // null | { found, suggested_tas_kts, original_tas_kts, message, wptIdx }
   const [showUtmModal,    setShowUtmModal]    = useState(false)
   const [fileImportError,  setFileImportError]  = useState(null)
   const [fileImportStatus, setFileImportStatus] = useState(null)   // null | string
@@ -462,7 +490,7 @@ export default function App() {
       if (m.rocket_rounds != null) setRocketRounds(m.rocket_rounds)
       if (m.stationsConfig)    setStationsConfig(m.stationsConfig)
       if (wpts.length > 0)     setWaypoints(wpts.map(wp => ({ ...DEFAULT_WPT, ...wp })))
-      setResults(null); setStopAlert(null); setError(null)
+      setResults(null); setStopAlert(null); setSuggestResult(null); setError(null)
     } catch (err) {
       setError(`Could not read Excel file — make sure it's a valid Galaxy export (.xlsx/.xls): ${err.message}`)
     }
@@ -1037,7 +1065,7 @@ export default function App() {
   }, [mapAddMode, activeWpt, aglOffset, altMode, results])   // eslint-disable-line
 
   const handleCalculate = async () => {
-    setError(null); setResults(null); setStopAlert(null); setLoading(true)
+    setError(null); setResults(null); setStopAlert(null); setSuggestResult(null); setLoading(true)
 
     // Validate each waypoint field before sending — catches '…' loading placeholders and empty values
     const WPT_FIELDS = [
@@ -1111,6 +1139,122 @@ export default function App() {
     finally { setLoading(false) }
   }
 
+  // ── Climb Speed Suggestion ────────────────────────────────────────────────
+  const handleSuggestSpeed = async () => {
+    if (!stopAlert || !results) return
+    // Find the departure waypoint index (match stop lat/lon to waypoints)
+    let wptIdx = -1
+    let bestDist = Infinity
+    for (let i = 0; i < waypoints.length - 1; i++) {
+      const w = waypoints[i]
+      const lat = parseFloat(w.lat); const lon = parseFloat(w.lon)
+      if (isNaN(lat) || isNaN(lon)) continue
+      const d = Math.abs(lat - stopAlert.lat) + Math.abs(lon - stopAlert.lon)
+      if (d < bestDist) { bestDist = d; wptIdx = i }
+    }
+    if (wptIdx < 0 || wptIdx >= waypoints.length - 1) return
+
+    const wfromRaw = waypoints[wptIdx]
+    const wtoRaw   = waypoints[wptIdx + 1]
+
+    // Only suggest for climb or level legs (not descent)
+    const altFrom = parseFloat(wfromRaw.alt_ft)
+    const altTo   = parseFloat(wtoRaw.alt_ft)
+    if (altTo < altFrom) return  // descent — no suggestion
+
+    // Fuel at departure comes from results waypoints
+    const resWpt = results.waypoints[wptIdx]
+    const fuelAtDep = resWpt ? resWpt.fuel_remaining_lbs : parseFloat(initFuel) || 0
+
+    const wfrom = {
+      name: wfromRaw.name || `WP${wptIdx + 1}`,
+      lat: parseFloat(wfromRaw.lat), lon: parseFloat(wfromRaw.lon),
+      alt_ft: altFrom, airspeed_kts: parseFloat(wfromRaw.airspeed_kts),
+      oat_c: parseFloat(wfromRaw.oat_c),
+      atf: globalAtf,
+      hold_type: wfromRaw.hold_type || null,
+      hold_min: parseFloat(wfromRaw.hold_min) || 0,
+      hold_speed_kts: parseFloat(wfromRaw.hold_speed_kts) || 80,
+      spare_pct: Math.max(-5, Math.min(40, parseInt(wfromRaw.spare_pct) || 0)),
+      wind_dir: Math.max(0, Math.min(360, parseInt(wfromRaw.wind_dir) || 0)),
+      wind_speed_kts: Math.max(0, parseFloat(wfromRaw.wind_speed_kts) || 0),
+    }
+    const wto = {
+      name: wtoRaw.name || `WP${wptIdx + 2}`,
+      lat: parseFloat(wtoRaw.lat), lon: parseFloat(wtoRaw.lon),
+      alt_ft: altTo, airspeed_kts: parseFloat(wtoRaw.airspeed_kts),
+      oat_c: parseFloat(wtoRaw.oat_c),
+      atf: globalAtf,
+      hold_type: wtoRaw.hold_type || null,
+      hold_min: parseFloat(wtoRaw.hold_min) || 0,
+      hold_speed_kts: parseFloat(wtoRaw.hold_speed_kts) || 80,
+      spare_pct: Math.max(-5, Math.min(40, parseInt(wtoRaw.spare_pct) || 0)),
+      wind_dir: Math.max(0, Math.min(360, parseInt(wtoRaw.wind_dir) || 0)),
+      wind_speed_kts: Math.max(0, parseFloat(wtoRaw.wind_speed_kts) || 0),
+    }
+
+    setSuggestLoading(true)
+    setSuggestResult(null)
+    try {
+      const res = await suggestClimbSpeed({
+        variant,
+        empty_weight_lbs: configuredEmptyWt,
+        fuel_at_departure_lbs: fuelAtDep,
+        etf_eng1: parseFloat(etfEng1) || 0.95,
+        etf_eng2: parseFloat(etfEng2) || 0.95,
+        n_bidons: countStore(stationsConfig, 'eft_230'),
+        delta_f: Math.round((globalAtf - 1) * 100 * 1000) / 1000,
+        wfrom,
+        wto,
+        wca_thresholds: {
+          warnings_enabled:           true,
+          warn_delta_torque_pct:      settings.wcaWarnDeltaTorque,
+          warn_cruise_torque_pct:     settings.wcaWarnCruiseTorque,
+          warn_min_fuel_lbs:          settings.wcaWarnMinFuel,
+          warn_max_gw_lbs:            settings.wcaWarnMaxGw,
+          cautions_enabled:                  settings.wcaCautionsEnabled,
+          caution_delta_torque_enabled:      settings.wcaCautionDeltaTorqueEnabled,
+          caution_delta_torque_pct:          settings.wcaCautionDeltaTorque,
+          caution_cruise_torque_enabled:     settings.wcaCautionCruiseTorqueEnabled,
+          caution_cruise_torque_pct:         settings.wcaCautionCruiseTorque,
+          caution_terrain_enabled:           settings.wcaCautionTerrainEnabled,
+          caution_terrain_margin_ft:         settings.wcaCautionTerrainMargin,
+          advisories_enabled:                settings.wcaAdvisoriesEnabled,
+          advisory_delta_torque_enabled:     settings.wcaAdvisoryDeltaTorqueEnabled,
+          advisory_delta_torque_pct:         settings.wcaAdvisoryDeltaTorque,
+          advisory_cruise_torque_enabled:    settings.wcaAdvisoryCruiseTorqueEnabled,
+          advisory_cruise_torque_pct:        settings.wcaAdvisoryCruiseTorque,
+          advisory_fuel_enabled:             settings.wcaAdvisoryFuelEnabled,
+          advisory_min_fuel_lbs:             settings.wcaAdvisoryMinFuel,
+        },
+      })
+      setSuggestResult({ ...res, wptIdx })
+    } catch (e) {
+      setSuggestResult({ found: false, message: `Error: ${e.message}`, wptIdx, original_tas_kts: parseFloat(wfromRaw.airspeed_kts) })
+    } finally {
+      setSuggestLoading(false)
+    }
+  }
+
+  // Determine whether the Suggest Speed button should appear
+  const suggestApplicable = (() => {
+    if (!stopAlert) return false
+    if (!['DELTA_TRQ', 'CRUISE_TRQ'].includes(stopAlert.code)) return false
+    // Find departure waypoint
+    let wptIdx = -1; let bestDist = Infinity
+    for (let i = 0; i < waypoints.length - 1; i++) {
+      const w = waypoints[i]
+      const lat = parseFloat(w.lat); const lon = parseFloat(w.lon)
+      if (isNaN(lat) || isNaN(lon)) continue
+      const d = Math.abs(lat - stopAlert.lat) + Math.abs(lon - stopAlert.lon)
+      if (d < bestDist) { bestDist = d; wptIdx = i }
+    }
+    if (wptIdx < 0 || wptIdx >= waypoints.length - 1) return false
+    const altFrom = parseFloat(waypoints[wptIdx].alt_ft)
+    const altTo   = parseFloat(waypoints[wptIdx + 1]?.alt_ft)
+    return !isNaN(altFrom) && !isNaN(altTo) && altTo >= altFrom
+  })()
+
   const validWpts = waypoints
     .map((w, i) => ({ ...w, index: i }))
     .filter(w => w.lat && w.lon && !isNaN(parseFloat(w.lat)) && !isNaN(parseFloat(w.lon)))
@@ -1155,8 +1299,8 @@ export default function App() {
   })
   const badge = (value, color) => (
     <span style={{
-      fontWeight: 700, fontSize: 11, color,
-      background: t.bg3, padding: '1px 8px', borderRadius: 3,
+      fontWeight: 700, fontSize: 12, color,
+      background: t.bg3, padding: '2px 9px', borderRadius: 3,
       border: `1px solid ${color}`, letterSpacing: 1, fontFamily: t.font,
     }}>{value}</span>
   )
@@ -1529,6 +1673,9 @@ data/srtm.tif
         </div>
       )}
 
+      {/* ── Easter egg game ─────────────────────────────────────────────── */}
+      {showEasterEgg && <EasterEggGame onClose={() => setShowEasterEgg(false)} />}
+
       {/* ── Load / XLS confirm dialog ──────────────────────────────────── */}
       {showLoadConfirm && (
         <div onClick={() => setShowLoadConfirm(null)} style={{
@@ -1812,10 +1959,106 @@ data/srtm.tif
             </div>
             <div style={{ fontSize: 11, color: '#e5e7eb', marginTop: 2 }}>{stopAlert.message}</div>
           </div>
+          {suggestApplicable && (
+            <button onClick={handleSuggestSpeed} style={{
+              background: '#1e3a5f', border: '1px solid #3b82f6', borderRadius: 4,
+              color: '#93c5fd', cursor: 'pointer', fontSize: 10, fontWeight: 700,
+              padding: '3px 8px', whiteSpace: 'nowrap', letterSpacing: 0.8,
+            }}>SUGGEST SPEED</button>
+          )}
           <button onClick={() => setStopAlert(null)} style={{
             background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af',
             fontSize: 14, padding: '0 2px', lineHeight: 1,
           }}>✕</button>
+        </div>
+      )}
+
+      {/* ── Suggest Speed: loading modal ── */}
+      {suggestLoading && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 8000, background: 'rgba(0,0,0,0.72)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <div style={{
+            background: '#0f1923', border: '2px solid #3b82f6', borderRadius: 12,
+            padding: '36px 48px', textAlign: 'center', fontFamily: t.font,
+            boxShadow: '0 8px 40px rgba(0,0,0,0.8)',
+          }}>
+            <div style={{ fontSize: 32, letterSpacing: 4, fontWeight: 900, color: '#3b82f6', marginBottom: 4 }}>ILANA</div>
+            <div style={{ fontSize: 10, letterSpacing: 3, color: '#60a5fa', marginBottom: 28 }}>AH-64D MISSION PLANNER</div>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
+              <svg width="48" height="48" viewBox="0 0 48 48" style={{ animation: 'spin 1.1s linear infinite' }}>
+                <style>{'@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}'}</style>
+                <circle cx="24" cy="24" r="20" fill="none" stroke="#1e3a5f" strokeWidth="4"/>
+                <path d="M24 4 A20 20 0 0 1 44 24" fill="none" stroke="#3b82f6" strokeWidth="4" strokeLinecap="round"/>
+              </svg>
+            </div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#e5e7eb', letterSpacing: 2 }}>WORKING ON SUGGESTION</div>
+            <div style={{ fontSize: 10, color: '#6b7280', marginTop: 6 }}>Running binary search for optimal climb speed...</div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Suggest Speed: result modal ── */}
+      {suggestResult && !suggestLoading && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 8000, background: 'rgba(0,0,0,0.72)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <div style={{
+            background: '#0f1923', border: `2px solid ${suggestResult.found ? '#3b82f6' : '#ef4444'}`,
+            borderRadius: 12, padding: '28px 36px', fontFamily: t.font,
+            boxShadow: '0 8px 40px rgba(0,0,0,0.8)', minWidth: 320, maxWidth: 420,
+          }}>
+            <div style={{ fontSize: 11, letterSpacing: 3, fontWeight: 700,
+              color: suggestResult.found ? '#60a5fa' : '#f87171', marginBottom: 16 }}>
+              {suggestResult.found ? 'SPEED SUGGESTION' : 'NO SUGGESTION AVAILABLE'}
+            </div>
+            {suggestResult.found ? (
+              <>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 10 }}>
+                  <span style={{ fontSize: 42, fontWeight: 900, color: '#3b82f6', lineHeight: 1 }}>
+                    {suggestResult.suggested_tas_kts}
+                  </span>
+                  <span style={{ fontSize: 14, color: '#94a3b8' }}>kts TAS</span>
+                </div>
+                <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 4 }}>
+                  Maximum speed for WP{suggestResult.wptIdx + 1} without exceeding torque limits
+                </div>
+                <div style={{ fontSize: 10, color: '#6b7280', marginBottom: 20 }}>
+                  Original speed: {Math.round(suggestResult.original_tas_kts)} kts
+                </div>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button onClick={() => {
+                    setWaypoints(wpts => wpts.map((w, i) =>
+                      i === suggestResult.wptIdx ? { ...w, airspeed_kts: String(suggestResult.suggested_tas_kts) } : w
+                    ))
+                    setResults(null); setStopAlert(null); setSuggestResult(null)
+                  }} style={{
+                    flex: 1, background: '#1e3a5f', border: '1px solid #3b82f6',
+                    borderRadius: 6, color: '#93c5fd', cursor: 'pointer',
+                    fontSize: 11, fontWeight: 700, padding: '8px 0', letterSpacing: 1,
+                  }}>ACCEPT & APPLY</button>
+                  <button onClick={() => setSuggestResult(null)} style={{
+                    flex: 1, background: '#1a1a2e', border: '1px solid #374151',
+                    borderRadius: 6, color: '#9ca3af', cursor: 'pointer',
+                    fontSize: 11, fontWeight: 700, padding: '8px 0', letterSpacing: 1,
+                  }}>DISMISS</button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div style={{ fontSize: 12, color: '#e5e7eb', marginBottom: 20 }}>
+                  {suggestResult.message}
+                </div>
+                <button onClick={() => setSuggestResult(null)} style={{
+                  width: '100%', background: '#1a1a2e', border: '1px solid #374151',
+                  borderRadius: 6, color: '#9ca3af', cursor: 'pointer',
+                  fontSize: 11, fontWeight: 700, padding: '8px 0', letterSpacing: 1,
+                }}>CLOSE</button>
+              </>
+            )}
+          </div>
         </div>
       )}
 
@@ -2121,75 +2364,97 @@ data/srtm.tif
 
       {/* ── Icon sidebar (always visible) ───────────────────────────────── */}
       <div style={{
-        width: 44, flexShrink: 0, background: t.bg0,
+        width: 54, flexShrink: 0, background: t.bg0,
         borderRight: `1px solid ${t.border0}`,
         display: 'flex', flexDirection: 'column', alignItems: 'center',
-        paddingTop: 10, gap: 2,
+        paddingTop: 8, paddingBottom: 8, gap: 3,
       }}>
-        <img src="/logo.png" alt="ILANA" style={{ width: 32, height: 32, objectFit: 'contain', borderRadius: 4, marginBottom: 6 }} />
-        {[
-          { icon: 'ℹ', label: 'ABOUT',  tip: 'About ILANA',                      action: () => setShowAbout(true) },
-          { icon: '◑', label: themeName === 'green' ? 'BLUE' : 'GREEN',
-                        tip: `Switch to ${themeName === 'green' ? 'Dark Blue' : 'Dark Green'}`, action: toggle },
-          { icon: '+', label: 'NEW',    tip: 'New mission',                        action: () => setShowNewConfirm(true) },
-          { icon: '↑', label: 'LOAD',    tip: 'Load mission (.json)',               action: () => setShowLoadConfirm('json') },
-          { icon: '⇑', label: 'XLS IN', tip: 'Load mission from Excel',            action: () => setShowLoadConfirm('xls') },
-          { icon: '↓', label: 'SAVE',   tip: 'Save mission (.json)',               action: exportMission },
-          { icon: '⚙', label: 'SET',    tip: 'Settings',                           action: () => { setPendingSet(settings); setConfirmStep(0); setShowSettings(true) } },
-          { icon: '?', label: 'HELP',   tip: 'Help',                               action: () => setShowHelp(true) },
-          { icon: '✎', label: 'NOTES',  tip: 'Black Notes',                        action: () => {} },
-        ].map(({ icon, label, tip, action, warn: isWarn }) => (
-          <button key={label} onClick={action} title={tip} style={{
-            width: 38, height: 46, background: 'none',
-            border: `1px solid ${isWarn ? t.warn : t.border0}`,
-            borderRadius: 6, cursor: 'pointer', color: isWarn ? t.warn : t.text2,
-            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-            gap: 2, fontFamily: t.font, transition: 'all 0.15s',
+        {/* Logo — triple-click to open easter egg */}
+        <div
+          onClick={() => {
+            const lc = logoClickRef.current
+            clearTimeout(lc.timer)
+            lc.count++
+            if (lc.count >= 3) { lc.count = 0; setShowEasterEgg(true) }
+            else lc.timer = setTimeout(() => { lc.count = 0 }, 1400)
           }}
-          onMouseEnter={e => { e.currentTarget.style.background = t.bg2; e.currentTarget.style.color = isWarn ? t.warn : t.accent; e.currentTarget.style.borderColor = isWarn ? t.warn : t.accent }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = isWarn ? t.warn : t.text2; e.currentTarget.style.borderColor = isWarn ? t.warn : t.border0 }}>
-            <span style={{ fontSize: 14 }}>{icon}</span>
-            <span style={{ fontSize: 7, letterSpacing: 0.5, fontWeight: 700 }}>{label}</span>
-          </button>
-        ))}
+          title="ILANA · Apache Mission Planner"
+          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, marginBottom: 6, cursor: 'pointer' }}
+        >
+          <img src="/logo.png" alt="ILANA" style={{
+            width: 40, height: 40, objectFit: 'contain', borderRadius: 8,
+            border: `1px solid ${t.border1}`,
+            background: t.bg2,
+          }} />
+          <span style={{ fontSize: 8, fontWeight: 900, letterSpacing: 3, color: t.accent, fontFamily: t.font }}>ILANA</span>
+        </div>
+
+        {/* File group */}
+        <SideBtn icon="+" label="NEW"    tip="New mission"               onClick={() => setShowNewConfirm(true)} t={t} />
+        <SideBtn icon="↑" label="LOAD"   tip="Load mission (.json)"      onClick={() => setShowLoadConfirm('json')} t={t} />
+        <SideBtn icon="⇑" label="XLS IN" tip="Load from Excel"           onClick={() => setShowLoadConfirm('xls')} t={t} />
+        <SideBtn icon="↓" label="SAVE"   tip="Save mission (.json)"      onClick={exportMission} t={t} />
+
+        <SideSep t={t} />
+
+        {/* Config group */}
+        <SideBtn icon="⚙" label="SET" tip="Settings"
+          onClick={() => { setPendingSet(settings); setConfirmStep(0); setShowSettings(true) }} t={t} />
+
         {/* WCA button — color tracks highest active alert severity */}
         {(() => {
           const activeAlerts = results?.alerts ?? []
-          const wcaColor = results?.has_warnings       ? t.warn
+          const wcaColor = results?.has_warnings        ? t.warn
                          : results?.has_active_cautions ? t.caution
                          : activeAlerts.some(a => a.level === 'ADVISORY') ? t.accent
                          : t.text2
           const wcaBorder = wcaColor === t.text2 ? t.border0 : wcaColor
-          const topAlert = results?.has_warnings ? 'W' : results?.has_active_cautions ? 'C'
-                         : activeAlerts.some(a => a.level === 'ADVISORY') ? 'A' : null
+          const topAlert  = results?.has_warnings ? 'W' : results?.has_active_cautions ? 'C'
+                          : activeAlerts.some(a => a.level === 'ADVISORY') ? 'A' : null
           return (
             <button
               onClick={() => { setPendingWca(settings); setWcaTab('WARNING'); setShowWca(true) }}
               title="Warnings / Cautions / Advisories"
               style={{
-                width: 38, height: 46, background: 'none',
+                width: 46, height: 46, background: 'none', flexShrink: 0,
                 border: `1px solid ${wcaBorder}`,
                 borderRadius: 6, cursor: 'pointer', color: wcaColor,
                 display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                gap: 2, fontFamily: t.font, transition: 'all 0.15s', position: 'relative',
+                gap: 2, fontFamily: t.font, transition: 'all 0.12s', position: 'relative',
               }}
               onMouseEnter={e => { e.currentTarget.style.background = t.bg2; e.currentTarget.style.borderColor = wcaColor === t.text2 ? t.accent : wcaColor }}
               onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.borderColor = wcaBorder }}>
-              <span style={{ fontSize: 14 }}>⚠</span>
-              <span style={{ fontSize: 7, letterSpacing: 0.5, fontWeight: 700 }}>WCA</span>
+              <span style={{ fontSize: 16, lineHeight: 1 }}>⚠</span>
+              <span style={{ fontSize: 8, letterSpacing: 0.5, fontWeight: 700 }}>WCA</span>
               {topAlert && (
                 <span style={{
-                  position: 'absolute', top: 3, right: 3, width: 10, height: 10,
+                  position: 'absolute', top: 3, right: 3, width: 11, height: 11,
                   borderRadius: '50%', background: wcaColor,
-                  fontSize: 6, fontWeight: 900, color: t.bg0,
+                  fontSize: 7, fontWeight: 900, color: t.bg0,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>{topAlert}</span>
               )}
             </button>
           )
         })()}
+
+        <SideSep t={t} />
+
+        {/* Info group */}
+        <SideBtn icon="✎" label="NOTES" tip="Notes"          onClick={() => {}} t={t} />
+        <SideBtn icon="?" label="HELP"  tip="Help"           onClick={() => setShowHelp(true)} t={t} />
+        <SideBtn icon="ℹ" label="ABOUT" tip="About ILANA"   onClick={() => setShowAbout(true)} t={t} />
+
+        {/* Push theme toggle to bottom */}
+        <div style={{ flex: 1 }} />
+
+        <SideSep t={t} />
+        <SideBtn icon="◑" label={themeName === 'green' ? 'BLUE' : 'GREEN'}
+          tip={`Switch to ${themeName === 'green' ? 'Dark Blue' : 'Dark Green'}`}
+          onClick={toggle} t={t} />
+
         <input ref={importRef}    type="file" accept=".json"        onChange={importMission}    style={{ display: 'none' }} />
-        <input ref={importXlsRef} type="file" accept=".xlsx,.xls" onChange={importMissionXls} style={{ display: 'none' }} />
+        <input ref={importXlsRef} type="file" accept=".xlsx,.xls"  onChange={importMissionXls} style={{ display: 'none' }} />
       </div>
 
       {/* ── Left panel (collapsible) ─────────────────────────────────────── */}
@@ -2202,13 +2467,13 @@ data/srtm.tif
         <div style={{ padding: '8px 16px', borderBottom: `1px solid ${t.border0}`, background: t.bg0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ fontWeight: 900, fontSize: 18, letterSpacing: 4, color: t.accent }}>ILANA</div>
-            <div style={{ fontSize: 9, color: t.text2, letterSpacing: 3, fontWeight: 600 }}>APACHE · MISSION PLANNER</div>
+            <div style={{ fontSize: 10, color: t.text2, letterSpacing: 3, fontWeight: 600 }}>APACHE · MISSION PLANNER</div>
             <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4 }}>
-              <span style={{ fontSize: 8, color: t.text3, letterSpacing: 1 }}>ROUTE</span>
+              <span style={{ fontSize: 10, color: t.text3, letterSpacing: 1 }}>ROUTE</span>
               <span style={{
-                fontSize: 10, fontWeight: 700, color: activeRoute.color,
+                fontSize: 11, fontWeight: 700, color: activeRoute.color,
                 background: t.bg3, border: `1px solid ${activeRoute.color}`,
-                borderRadius: 3, padding: '1px 7px', letterSpacing: 1, maxWidth: 120,
+                borderRadius: 3, padding: '2px 8px', letterSpacing: 1, maxWidth: 120,
                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
               }}>{activeRoute.name}</span>
             </div>
@@ -2220,11 +2485,11 @@ data/srtm.tif
 
         {/* ── AIRCRAFT ──────────────────────────────────────────────────── */}
         <div style={{ borderBottom: `1px solid ${t.border0}` }}>
-          <div onClick={() => setAcftExpanded(e => !e)} style={{ padding: '8px 16px', cursor: 'pointer', userSelect: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: t.bg2 }}>
-            <span style={{ fontSize: 10, fontWeight: 700, color: t.text2, letterSpacing: 2 }}>AIRCRAFT</span>
+          <div onClick={() => setAcftExpanded(e => !e)} style={{ padding: '10px 16px', cursor: 'pointer', userSelect: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: t.bg2, borderLeft: acftExpanded ? `3px solid ${t.accent}` : '3px solid transparent' }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: acftExpanded ? t.text0 : t.text2, letterSpacing: 2 }}>AIRCRAFT</span>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               {!acftExpanded && <>{badge(VARIANT_LABEL[variant] || variant, t.accent)} {badge(`ETF ${acft}`, t.text2)}</>}
-              <span style={{ fontSize: 10, color: t.text3 }}>{acftExpanded ? '▲' : '▼'}</span>
+              <span style={{ fontSize: 11, color: t.text3 }}>{acftExpanded ? '▲' : '▼'}</span>
             </div>
           </div>
           {acftExpanded && (
@@ -2277,11 +2542,11 @@ data/srtm.tif
 
         {/* ── WEIGHT ────────────────────────────────────────────────────── */}
         <div style={{ borderBottom: `1px solid ${t.border0}` }}>
-          <div onClick={() => setWeightExpanded(e => !e)} style={{ padding: '8px 16px', cursor: 'pointer', userSelect: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: t.bg2 }}>
-            <span style={{ fontSize: 10, fontWeight: 700, color: t.text2, letterSpacing: 2 }}>WEIGHT</span>
+          <div onClick={() => setWeightExpanded(e => !e)} style={{ padding: '10px 16px', cursor: 'pointer', userSelect: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: t.bg2, borderLeft: weightExpanded ? `3px solid ${t.accent}` : '3px solid transparent' }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: weightExpanded ? t.text0 : t.text2, letterSpacing: 2 }}>WEIGHT</span>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               {!weightExpanded && badge(`GW ${Math.round(grossWt).toLocaleString()} LBS`, gwColor)}
-              <span style={{ fontSize: 10, color: t.text3 }}>{weightExpanded ? '▲' : '▼'}</span>
+              <span style={{ fontSize: 11, color: t.text3 }}>{weightExpanded ? '▲' : '▼'}</span>
             </div>
           </div>
           {weightExpanded && (
@@ -2336,11 +2601,11 @@ data/srtm.tif
 
         {/* ── NAVIGATION ────────────────────────────────────────────────── */}
         <div style={{ borderBottom: `1px solid ${t.border0}` }}>
-          <div onClick={() => setNavExpanded(e => !e)} style={{ padding: '8px 16px', cursor: 'pointer', userSelect: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: t.bg2 }}>
-            <span style={{ fontSize: 10, fontWeight: 700, color: t.text2, letterSpacing: 2 }}>NAVIGATION</span>
+          <div onClick={() => setNavExpanded(e => !e)} style={{ padding: '10px 16px', cursor: 'pointer', userSelect: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: t.bg2, borderLeft: navExpanded ? `3px solid ${t.accent}` : '3px solid transparent' }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: navExpanded ? t.text0 : t.text2, letterSpacing: 2 }}>NAVIGATION</span>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               {!navExpanded && <>{badge(`${altMode} ${aglOffset || 1000} FT`, t.accent)} {badge(`ISA ${seaLevelTemp || 25}°C`, t.text2)}</>}
-              <span style={{ fontSize: 10, color: t.text3 }}>{navExpanded ? '▲' : '▼'}</span>
+              <span style={{ fontSize: 11, color: t.text3 }}>{navExpanded ? '▲' : '▼'}</span>
             </div>
           </div>
           {navExpanded && (
@@ -2377,11 +2642,11 @@ data/srtm.tif
 
         {/* ── WIND ──────────────────────────────────────────────────────── */}
         <div style={{ borderBottom: `1px solid ${t.border0}` }}>
-          <div onClick={() => setWindExpanded(e => !e)} style={{ padding: '8px 16px', cursor: 'pointer', userSelect: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: t.bg2 }}>
-            <span style={{ fontSize: 10, fontWeight: 700, color: t.text2, letterSpacing: 2 }}>WIND</span>
+          <div onClick={() => setWindExpanded(e => !e)} style={{ padding: '10px 16px', cursor: 'pointer', userSelect: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: t.bg2, borderLeft: windExpanded ? `3px solid ${t.accent}` : '3px solid transparent' }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: windExpanded ? t.text0 : t.text2, letterSpacing: 2 }}>WIND</span>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               {!windExpanded && <>{badge(windPreset === 'fixed' ? `${windPresetDir}° / ${windPresetSpeed}KT` : `${windPreset.toUpperCase()} ${windPresetSpeed}KT`, t.accent)}</>}
-              <span style={{ fontSize: 10, color: t.text3 }}>{windExpanded ? '▲' : '▼'}</span>
+              <span style={{ fontSize: 11, color: t.text3 }}>{windExpanded ? '▲' : '▼'}</span>
             </div>
           </div>
           {windExpanded && (
@@ -2443,18 +2708,18 @@ data/srtm.tif
 
         {/* ── WAYPOINTS ─────────────────────────────────────────────────── */}
         <div style={{ borderBottom: `1px solid ${t.border0}` }}>
-          <div onClick={() => setWptExpanded(e => !e)} style={{ padding: '8px 16px', cursor: 'pointer', userSelect: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: t.bg2 }}>
-            <span style={{ fontSize: 10, fontWeight: 700, color: t.text2, letterSpacing: 2 }}>WAYPOINTS</span>
+          <div onClick={() => setWptExpanded(e => !e)} style={{ padding: '10px 16px', cursor: 'pointer', userSelect: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: t.bg2, borderLeft: wptExpanded ? `3px solid ${t.accent}` : '3px solid transparent' }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: wptExpanded ? t.text0 : t.text2, letterSpacing: 2 }}>WAYPOINTS</span>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               {!wptExpanded && badge(`${waypoints.length} PTS`, t.accent)}
-              <span style={{ fontSize: 10, color: t.text3 }}>{wptExpanded ? '▲' : '▼'}</span>
+              <span style={{ fontSize: 11, color: t.text3 }}>{wptExpanded ? '▲' : '▼'}</span>
             </div>
           </div>
           {wptExpanded && (
             <div style={{ padding: '8px 0' }}>
               {waypoints.length === 0 && (
                 <div style={{ padding: '10px 16px 6px' }}>
-                  <div style={{ fontSize: 9, color: t.text3, marginBottom: 8, letterSpacing: 1 }}>
+                  <div style={{ fontSize: 11, color: t.text3, marginBottom: 8, letterSpacing: 1 }}>
                     ADD WAYPOINTS VIA:
                   </div>
                   <div style={{ display: 'flex', gap: 6 }}>
@@ -2466,7 +2731,7 @@ data/srtm.tif
                     ].map(({ icon, label, onClick }) => (
                       <button key={label} onClick={onClick}
                         style={{
-                          flex: 1, padding: '8px 4px', fontSize: 9, fontWeight: 700,
+                          flex: 1, padding: '8px 4px', fontSize: 11, fontWeight: 700,
                           cursor: 'pointer', fontFamily: t.font, borderRadius: 4, textAlign: 'center',
                           background: t.bg3, border: `1px solid ${t.border1}`, color: t.text1,
                         }}>
@@ -2498,6 +2763,7 @@ data/srtm.tif
                 onReorder={reorderWaypoints} onReverse={reverseWaypoints}
                 aglOffset={parseInt(aglOffset) || 1000}
                 altMode={altMode}
+                seaLevelTemp={parseFloat(seaLevelTemp) || 25}
                 targetWptIdx={targetWptIdx} onSetTarget={handleSetTarget}
                 cspWptIdx={cspWptIdx} cspFuel={cspFuel}
                 onSetCsp={handleSetCsp}
@@ -2732,6 +2998,7 @@ data/srtm.tif
       {!rightFolded && (
         <RoutePanel
           width={rightWidth}
+          activeRoute={activeRoute}
           projectName={projectName} onSetProjectName={setProjectName}
           routes={routes} activeRouteId={activeRouteId}
           onSelectRoute={selectRoute}
@@ -2753,8 +3020,8 @@ data/srtm.tif
 
 function Row({ label, children, t }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', marginBottom: 5 }}>
-      <div style={{ width: 140, fontSize: 11, color: t.text2, flexShrink: 0 }}>{label}</div>
+    <div style={{ display: 'flex', alignItems: 'center', marginBottom: 6 }}>
+      <div style={{ width: 150, fontSize: 12, color: t.text2, flexShrink: 0 }}>{label}</div>
       <div style={{ flex: 1 }}>{children}</div>
     </div>
   )
@@ -2762,7 +3029,7 @@ function Row({ label, children, t }) {
 
 function WtRow({ label, value, t }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, marginBottom: 2 }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginBottom: 3 }}>
       <span style={{ color: t.text3 }}>{label}</span>
       <span style={{ color: t.text1 }}>{Math.round(value).toLocaleString()}</span>
     </div>

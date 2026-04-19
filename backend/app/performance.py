@@ -387,6 +387,65 @@ def _simulate_leg_backward(wfrom, wto, torque_tbl, ff_tbl, fuel_remaining, empty
     return fuel_remaining, fuel_added, leg_time_min, avg_torque_pct, avg_ff_lb_hr, dist_nm, None
 
 
+def suggest_climb_speed(
+    variant: str,
+    empty_weight_lbs: float,
+    fuel_at_departure_lbs: float,
+    wfrom,
+    wto,
+    acft_etf: float = 1.0,
+    n_bidons: int = 0,
+    delta_f=None,
+    thresholds=None,
+    max_tas: int = 120,
+) -> tuple:
+    """
+    Binary search for the maximum TAS (kts, integer) ≤ max_tas that allows
+    the departure WCA check (DELTA_TRQ / CRUISE_TRQ) to pass for the given leg.
+
+    Uses a lightweight proxy object so wfrom is not mutated.
+    Returns (found: bool, best_tas: int | None).
+    """
+    import types as _types
+
+    torque_tbl, ff_tbl, pa_tbl, _ = load_tables(variant)
+    drag = delta_f if delta_f is not None else _CDRAG.get(n_bidons, 0.0)
+
+    _ATTRS = ('lat', 'lon', 'alt_ft', 'oat_c', 'atf', 'wind_speed_kts', 'wind_dir', 'spare_pct')
+    base = {a: getattr(wfrom, a, 0) for a in _ATTRS}
+
+    def _test(tas_kts: int) -> bool:
+        proxy = _types.SimpleNamespace(**base, airspeed_kts=float(tas_kts))
+        _, _, _, _, _, _, stop_info = _simulate_leg(
+            proxy, wto, torque_tbl, ff_tbl, fuel_at_departure_lbs, empty_weight_lbs,
+            drag=drag, spare_pct=int(getattr(wfrom, 'spare_pct', 0)),
+            pa_tbl=pa_tbl, acft_etf=acft_etf, thresholds=thresholds,
+        )
+        if stop_info is None:
+            return True
+        return stop_info['code'] not in ('DELTA_TRQ', 'CRUISE_TRQ')
+
+    original_tas = float(wfrom.airspeed_kts)
+    lo = 40
+    hi = int(min(original_tas - 1, float(max_tas)))
+    if hi < lo:
+        return False, None
+
+    if not _test(lo):
+        return False, None
+
+    best = lo
+    while lo <= hi:
+        mid = (lo + hi) // 2
+        if _test(mid):
+            best = mid
+            lo = mid + 1
+        else:
+            hi = mid - 1
+
+    return True, best
+
+
 def fuel_from_oge(oge_tbl, alt_ft: float, oat_c: float, empty_weight_lbs: float,
                   target_oge_pct: float, n_bidons: int) -> float | None:
     """
