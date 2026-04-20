@@ -89,7 +89,110 @@ if sys.platform == "win32":
     _log("asyncio: WindowsSelectorEventLoopPolicy set")
 
 
-# ── 4. Detect already-running instance ───────────────────────────────────────
+# ── 4. Network-share detection: copy app to local drive and re-launch ─────────
+# Windows blocks localhost socket binding for executables run from network shares
+# (UNC paths like \\server\share or mapped remote drives). Fix: copy the app
+# bundle to %LOCALAPPDATA%\Ilana\ on first run, keep data on the share, and
+# re-launch from the local copy. Subsequent runs skip the copy if already current.
+
+def _is_network_path(path: Path) -> bool:
+    s = str(path)
+    if s.startswith("\\\\") or s.startswith("//"):
+        return True
+    if sys.platform == "win32" and len(s) >= 2 and s[1] == ":" and s[2:3] in ("\\", "/"):
+        try:
+            import ctypes
+            DRIVE_REMOTE = 4
+            drive_type = ctypes.windll.kernel32.GetDriveTypeW(s[:3])
+            return drive_type == DRIVE_REMOTE
+        except Exception:
+            pass
+    return False
+
+
+def _get_local_app_dir() -> Path:
+    base = os.environ.get("LOCALAPPDATA") or str(Path.home() / "AppData" / "Local")
+    return Path(base) / "Ilana"
+
+
+def _app_needs_copy(src_exe: Path, dst_exe: Path) -> bool:
+    if not dst_exe.exists():
+        return True
+    try:
+        return abs(src_exe.stat().st_mtime - dst_exe.stat().st_mtime) > 2
+    except Exception:
+        return True
+
+
+if getattr(sys, "frozen", False) and sys.platform == "win32" and _is_network_path(_EXE_DIR):
+    _log(f"Network path detected: {_EXE_DIR} — switching to local copy")
+
+    _local_app = _get_local_app_dir()
+    _exe_name  = Path(sys.executable).name
+    _local_exe = _local_app / _exe_name
+    _src_exe   = Path(sys.executable)
+
+    if _app_needs_copy(_src_exe, _local_exe):
+        _log(f"Copying bundle to {_local_app} (excluding data\\)...")
+
+        _copy_win = None
+        try:
+            import tkinter as _tk
+            _copy_win = _tk.Tk()
+            _copy_win.title("Ilana — First-time setup")
+            _copy_win.geometry("420x90")
+            _copy_win.resizable(False, False)
+            _tk.Label(
+                _copy_win,
+                text="Copying Ilana to local drive for first use…\nThis takes about a minute. Please wait.",
+                pady=14, padx=18, justify="left",
+            ).pack(anchor="w")
+            _copy_win.update()
+        except Exception:
+            pass
+
+        try:
+            import shutil as _shutil
+            if _local_app.exists():
+                _shutil.rmtree(str(_local_app))
+            _shutil.copytree(
+                str(_EXE_DIR), str(_local_app),
+                ignore=_shutil.ignore_patterns("data"),
+            )
+            _log("Copy complete")
+        except Exception as _e:
+            _log(f"Copy failed: {_e}")
+        finally:
+            if _copy_win:
+                try:
+                    _copy_win.destroy()
+                except Exception:
+                    pass
+    else:
+        _log("Local copy is up to date — skipping copy")
+
+    # Persist the data directory path so the local copy always finds it
+    _data_dir = str(_EXE_DIR / "data")
+    try:
+        (_local_app / "data_path.txt").write_text(_data_dir, encoding="utf-8")
+    except Exception as _e:
+        _log(f"Could not write data_path.txt: {_e}")
+
+    if _local_exe.exists():
+        import subprocess as _subprocess
+        _env = os.environ.copy()
+        _env["ILANA_DATA_DIR"] = _data_dir
+        _log(f"Re-launching {_local_exe} with ILANA_DATA_DIR={_data_dir}")
+        _subprocess.Popen(
+            [str(_local_exe)], env=_env, cwd=str(_local_app),
+            creationflags=0x00000008,  # DETACHED_PROCESS
+        )
+        sys.exit(0)
+    else:
+        _log("WARNING: local exe not found after copy — continuing from network (may fail)")
+
+
+# ── 5. Detect already-running instance ───────────────────────────────────────
 
 def _server_running(port: int) -> bool:
     try:

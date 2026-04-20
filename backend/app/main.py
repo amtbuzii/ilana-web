@@ -65,6 +65,18 @@ app.add_middleware(
 def _bundle_root() -> Path:
     """Exe directory when frozen (data/ lives here), project root in dev."""
     if getattr(_sys, "frozen", False):
+        # ILANA_DATA_DIR is set by the network-share launcher; data_path.txt
+        # is its persisted fallback (survives re-launches without the env var).
+        override = _os.environ.get("ILANA_DATA_DIR")
+        if not override:
+            cfg = Path(_sys.executable).parent / "data_path.txt"
+            if cfg.exists():
+                try:
+                    override = cfg.read_text(encoding="utf-8").strip() or None
+                except Exception:
+                    pass
+        if override:
+            return Path(override).parent
         return Path(_sys.executable).parent
     return Path(__file__).parent.parent.parent.parent
 
