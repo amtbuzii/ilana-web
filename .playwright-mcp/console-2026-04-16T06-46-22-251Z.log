@@ -1,0 +1,52 @@
+[     233ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:21550
+[ 2405652ms] ReferenceError: UpdateBtn is not defined
+    at WaypointCard (http://localhost:5173/src/components/WaypointPanel.jsx?t=1776324387795:746:38)
+    at renderWithHooks (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:11548:26)
+    at updateFunctionComponent (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:14582:28)
+    at beginWork (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:15924:22)
+    at HTMLUnknownElement.callCallback2 (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:3674:22)
+    at Object.invokeGuardedCallbackDev (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:3699:24)
+    at invokeGuardedCallback (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:3733:39)
+    at beginWork$1 (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:19765:15)
+    at performUnitOfWork (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:19198:20)
+    at workLoopSync (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:19137:13)
+[ 2405656ms] ReferenceError: UpdateBtn is not defined
+    at WaypointCard (http://localhost:5173/src/components/WaypointPanel.jsx?t=1776324387795:746:38)
+    at renderWithHooks (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:11548:26)
+    at updateFunctionComponent (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:14582:28)
+    at beginWork (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:15924:22)
+    at HTMLUnknownElement.callCallback2 (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:3674:22)
+    at Object.invokeGuardedCallbackDev (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:3699:24)
+    at invokeGuardedCallback (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:3733:39)
+    at beginWork$1 (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:19765:15)
+    at performUnitOfWork (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:19198:20)
+    at workLoopSync (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:19137:13)
+[ 2405659ms] [ERROR] The above error occurred in the <WaypointCard> component:
+
+    at WaypointCard (http://localhost:5173/src/components/WaypointPanel.jsx?t=1776324387795:156:25)
+    at div
+    at WaypointPanel (http://localhost:5173/src/components/WaypointPanel.jsx?t=1776324387795:21:41)
+    at div
+    at div
+    at div
+    at div
+    at div
+    at App (http://localhost:5173/src/App.jsx?t=1776323708784:130:36)
+    at ThemeProvider (http://localhost:5173/src/theme.jsx:79:33)
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:14031
+[ 2405662ms] ReferenceError: UpdateBtn is not defined
+    at WaypointCard (http://localhost:5173/src/components/WaypointPanel.jsx?t=1776324387795:746:38)
+    at renderWithHooks (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:11548:26)
+    at updateFunctionComponent (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:14582:28)
+    at beginWork (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:15924:22)
+    at beginWork$1 (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:19753:22)
+    at performUnitOfWork (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:19198:20)
+    at workLoopSync (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:19137:13)
+    at renderRootSync (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:19116:15)
+    at recoverFromConcurrentError (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:18736:28)
+    at performSyncWorkOnRoot (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:18879:28)
+[ 2459777ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:21550
+[ 9245345ms] [WARNING] Canvas2D: Multiple readback operations using getImageData are faster with the willReadFrequently attribute set to true. See: https://html.spec.whatwg.org/multipage/canvas.html#concept-canvas-will-read-frequently @ :16
+[ 9347831ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:21550

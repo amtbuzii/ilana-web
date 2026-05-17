@@ -2053,19 +2053,6 @@ data/srtm.tif
         />
       )}
 
-      {/* ── Notes panel — Wind analysis & Bingo calculator ── */}
-      {showNotes && (
-        <NotesPanel
-          routes={routes}
-          settings={settings}
-          bingoTargetMode={bingoTargetMode}
-          onRequestMapClick={() => setBingoTargetMode(true)}
-          onCancelMapClick={() => setBingoTargetMode(false)}
-          pendingBingoTarget={pendingBingoTarget}
-          onBingoTargetConsumed={() => setPendingBingoTarget(null)}
-          onClose={() => { setShowNotes(false); setBingoTargetMode(false); setPendingBingoTarget(null) }}
-        />
-      )}
 
       {/* ── Stop alert banner — shown when mid-leg WCA halted the calculation ── */}
       {stopAlert && (
@@ -3086,22 +3073,36 @@ data/srtm.tif
                     }} style={iconBtnStyle}>⬇ PRINT / PDF</button>
                   </div>
                 </div>
-                <div style={{ flex: 1, overflowY: 'auto', background: t.bg0 }}>
-                  {(stopAlert || results.alerts?.length > 0) && (
-                    <div style={{ padding: '8px 16px 0' }}>
-                      <WcaPanel
-                        alerts={results.alerts}
-                        stopAlert={stopAlert}
-                        advisoriesEnabled={settings.wcaAdvisoriesEnabled}
-                        onOpenWca={() => { setPendingWca(settings); setWcaTab('ADVISORY'); setShowWca(true) }}
-                      />
-                    </div>
+                <div style={{ flex: 1, overflowY: 'auto', background: t.bg0, display: 'flex', flexDirection: 'column' }}>
+                  {!showNotes ? (
+                    <>
+                      {(stopAlert || results.alerts?.length > 0) && (
+                        <div style={{ padding: '8px 16px 0' }}>
+                          <WcaPanel
+                            alerts={results.alerts}
+                            stopAlert={stopAlert}
+                            advisoriesEnabled={settings.wcaAdvisoriesEnabled}
+                            onOpenWca={() => { setPendingWca(settings); setWcaTab('ADVISORY'); setShowWca(true) }}
+                          />
+                        </div>
+                      )}
+                      <ResultsTable results={results} inputWaypoints={waypoints} targetWptIdx={targetWptIdx}
+                        cspWptIdx={cspWptIdx ?? null}
+                        onSelectWpt={setSelectedWpt} onSelectLeg={setSelectedLeg}
+                        selectedWpt={selectedWpt} selectedLeg={selectedLeg}
+                        alerts={results.alerts ?? []} jokerFuel={settings.jokerFuel} />
+                    </>
+                  ) : (
+                    <NotesPanel
+                      routes={routes}
+                      settings={settings}
+                      activeRoute={activeRoute}
+                      onRequestMapClick={() => setBingoTargetMode(true)}
+                      pendingBingoTarget={pendingBingoTarget}
+                      onBingoTargetConsumed={() => setPendingBingoTarget(null)}
+                      bingoTargetMode={bingoTargetMode}
+                    />
                   )}
-                  <ResultsTable results={results} inputWaypoints={waypoints} targetWptIdx={targetWptIdx}
-                    cspWptIdx={cspWptIdx ?? null}
-                    onSelectWpt={setSelectedWpt} onSelectLeg={setSelectedLeg}
-                    selectedWpt={selectedWpt} selectedLeg={selectedLeg}
-                    alerts={results.alerts ?? []} jokerFuel={settings.jokerFuel} />
                 </div>
               </div>
             )}

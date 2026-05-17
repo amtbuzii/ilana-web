@@ -1,0 +1,15 @@
+[      67ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:21550
+[  782719ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:5173/src/components/NotesPanel.jsx?t=1779010838318:0
+[  782720ms] [ERROR] [hmr] Failed to reload /src/components/NotesPanel.jsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:5173/@vite/client:175
+[  785697ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:5173/src/components/NotesPanel.jsx?t=1779010841313:0
+[  785698ms] [ERROR] [hmr] Failed to reload /src/components/NotesPanel.jsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:5173/@vite/client:175
+[  801877ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:5173/src/components/NotesPanel.jsx?t=1779010857486:0
+[  801878ms] [ERROR] [hmr] Failed to reload /src/components/NotesPanel.jsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:5173/@vite/client:175
+[  805342ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:5173/src/components/NotesPanel.jsx?t=1779010860956:0
+[  805342ms] [ERROR] [hmr] Failed to reload /src/components/NotesPanel.jsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:5173/@vite/client:175
+[  814909ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:5173/src/components/NotesPanel.jsx?t=1779010870521:0
+[  814909ms] [ERROR] [hmr] Failed to reload /src/components/NotesPanel.jsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:5173/@vite/client:175
+[  819651ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:5173/src/components/NotesPanel.jsx?t=1779010875260:0
+[  819651ms] [ERROR] [hmr] Failed to reload /src/components/NotesPanel.jsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:5173/@vite/client:175
+[  840509ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:5173/src/components/NotesPanel.jsx?t=1779010896124:0
+[  840510ms] [ERROR] [hmr] Failed to reload /src/components/NotesPanel.jsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:5173/@vite/client:175

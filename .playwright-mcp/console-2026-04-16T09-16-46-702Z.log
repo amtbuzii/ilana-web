@@ -1,0 +1,66 @@
+[    1931ms] [WARNING] <meta name="apple-mobile-web-app-capable" content="yes"> is deprecated. Please include <meta name="mobile-web-app-capable" content="yes"> @ https://www.canva.com/design?create&width=632&height=395&units=px&strategy=elements%3Aupload_2f4fb18b-81a1-4300-9c40-5e7fa5f40e3c&imageKeys=upload_2f4fb18b-81a1-4300-9c40-5e7fa5f40e3c&ui=eyJEIjp7IkoiOnsiRCI6eyJBPyI6IkEifX0sIlMiOnRydWV9LCJBIjp7IkEiOiJkb3dubG9hZF9wbmciLCJGIjp0cnVlfSwiRyI6eyJCIjp0cnVlLCJEIjp7IkQiOnsiQT8iOiJBIiwiQSI6IkIifX19fQ:0
+[    3105ms] [LOG] ripple[DAHHAWJHOiQ:OV4SP1O1Y2a1YS7yA(1776331009204-0,0)]: subscribing to channel @ https://static.canva.com/web/de7b6a15ca4634aa.sentry_browser.js:0
+[    3140ms] [INFO] ripple[DAHHAWJHOiQ:OV4SP1O1Y2a1YS7yA(1776331009204-0,0)]: unsubscribing from channel @ https://static.canva.com/web/de7b6a15ca4634aa.sentry_browser.js:0
+[    3140ms] [INFO] websocket_client: 1776331009842 connecting... @ https://static.canva.com/web/de7b6a15ca4634aa.sentry_browser.js:0
+[    4108ms] [WARNING] Fragl warning:  image may come from a different origin but you did not set the crossOrigin attribute. @ https://static.canva.com/web/de7b6a15ca4634aa.sentry_browser.js:0
+[    4108ms] [WARNING] WebGL: INVALID_VALUE: texImage2D: no image @ https://static.canva.com/web/f7fc9859d7cfc81b.vendor.js:1
+[    4189ms] [WARNING] Fragl warning:  image may come from a different origin but you did not set the crossOrigin attribute. @ https://static.canva.com/web/de7b6a15ca4634aa.sentry_browser.js:0
+[    4189ms] [WARNING] WebGL: INVALID_VALUE: texImage2D: no image @ https://static.canva.com/web/f7fc9859d7cfc81b.vendor.js:1
+[    4268ms] [WARNING] Fragl warning:  image may come from a different origin but you did not set the crossOrigin attribute. @ https://static.canva.com/web/de7b6a15ca4634aa.sentry_browser.js:0
+[    4268ms] [WARNING] WebGL: INVALID_VALUE: texImage2D: no image @ https://static.canva.com/web/f7fc9859d7cfc81b.vendor.js:1
+[    4387ms] [WARNING] Fragl warning:  image may come from a different origin but you did not set the crossOrigin attribute. @ https://static.canva.com/web/de7b6a15ca4634aa.sentry_browser.js:0
+[    4387ms] [WARNING] WebGL: INVALID_VALUE: texImage2D: no image @ https://static.canva.com/web/f7fc9859d7cfc81b.vendor.js:1
+[    4544ms] [WARNING] Fragl warning:  image may come from a different origin but you did not set the crossOrigin attribute. @ https://static.canva.com/web/de7b6a15ca4634aa.sentry_browser.js:0
+[    4544ms] [WARNING] WebGL: INVALID_VALUE: texImage2D: no image @ https://static.canva.com/web/f7fc9859d7cfc81b.vendor.js:1
+[    4616ms] [WARNING] Fragl warning:  image may come from a different origin but you did not set the crossOrigin attribute. @ https://static.canva.com/web/de7b6a15ca4634aa.sentry_browser.js:0
+[    4617ms] [WARNING] WebGL: INVALID_VALUE: texImage2D: no image @ https://static.canva.com/web/f7fc9859d7cfc81b.vendor.js:1
+[    4617ms] [WARNING] Fragl warning:  image may come from a different origin but you did not set the crossOrigin attribute. @ https://static.canva.com/web/de7b6a15ca4634aa.sentry_browser.js:0
+[    4617ms] [WARNING] WebGL: INVALID_VALUE: texImage2D: no image @ https://static.canva.com/web/f7fc9859d7cfc81b.vendor.js:1
+[    4726ms] [WARNING] Fragl warning:  image may come from a different origin but you did not set the crossOrigin attribute. @ https://static.canva.com/web/de7b6a15ca4634aa.sentry_browser.js:0
+[    4726ms] [WARNING] WebGL: INVALID_VALUE: texImage2D: no image @ https://static.canva.com/web/f7fc9859d7cfc81b.vendor.js:1
+[    4726ms] [WARNING] Fragl warning:  image may come from a different origin but you did not set the crossOrigin attribute. @ https://static.canva.com/web/de7b6a15ca4634aa.sentry_browser.js:0
+[    4726ms] [WARNING] WebGL: INVALID_VALUE: texImage2D: no image @ https://static.canva.com/web/f7fc9859d7cfc81b.vendor.js:1
+[    4991ms] [WARNING] Fragl warning:  image may come from a different origin but you did not set the crossOrigin attribute. @ https://static.canva.com/web/de7b6a15ca4634aa.sentry_browser.js:0
+[    4991ms] [WARNING] WebGL: INVALID_VALUE: texImage2D: no image @ https://static.canva.com/web/f7fc9859d7cfc81b.vendor.js:1
+[    5012ms] [INFO] websocket_client: connected @ https://static.canva.com/web/de7b6a15ca4634aa.sentry_browser.js:0
+[    5013ms] [LOG] ripple[DAHHAWJHOiQ:OV4SP1O1Y2a1YS7yA(1776331009204-0,0)]: subscribing to channel @ https://static.canva.com/web/de7b6a15ca4634aa.sentry_browser.js:0
+[    5013ms] [INFO] websocket_client: status CONNECTED @ https://static.canva.com/web/de7b6a15ca4634aa.sentry_browser.js:0
+[    5388ms] [INFO] websocket_client: request id 9ed217efeb7d8cd1 @ https://static.canva.com/web/de7b6a15ca4634aa.sentry_browser.js:0
+[    5466ms] [WARNING] Fragl warning:  image may come from a different origin but you did not set the crossOrigin attribute. @ https://static.canva.com/web/de7b6a15ca4634aa.sentry_browser.js:0
+[    5466ms] [WARNING] WebGL: INVALID_VALUE: texImage2D: no image @ https://static.canva.com/web/f7fc9859d7cfc81b.vendor.js:1
+[    5468ms] [WARNING] Fragl warning:  image may come from a different origin but you did not set the crossOrigin attribute. @ https://static.canva.com/web/de7b6a15ca4634aa.sentry_browser.js:0
+[    5468ms] [WARNING] WebGL: INVALID_VALUE: texImage2D: no image @ https://static.canva.com/web/f7fc9859d7cfc81b.vendor.js:1
+[    5469ms] [WARNING] Fragl warning:  image may come from a different origin but you did not set the crossOrigin attribute. @ https://static.canva.com/web/de7b6a15ca4634aa.sentry_browser.js:0
+[    5469ms] [WARNING] WebGL: INVALID_VALUE: texImage2D: no image @ https://static.canva.com/web/f7fc9859d7cfc81b.vendor.js:1
+[    5473ms] [WARNING] Fragl warning:  image may come from a different origin but you did not set the crossOrigin attribute. @ https://static.canva.com/web/de7b6a15ca4634aa.sentry_browser.js:0
+[    5473ms] [WARNING] WebGL: INVALID_VALUE: texImage2D: no image @ https://static.canva.com/web/f7fc9859d7cfc81b.vendor.js:1
+[    5477ms] [WARNING] Fragl warning:  image may come from a different origin but you did not set the crossOrigin attribute. @ https://static.canva.com/web/de7b6a15ca4634aa.sentry_browser.js:0
+[    5477ms] [WARNING] WebGL: INVALID_VALUE: texImage2D: no image @ https://static.canva.com/web/f7fc9859d7cfc81b.vendor.js:1
+[    5479ms] [WARNING] Fragl warning:  image may come from a different origin but you did not set the crossOrigin attribute. @ https://static.canva.com/web/de7b6a15ca4634aa.sentry_browser.js:0
+[    5479ms] [WARNING] WebGL: INVALID_VALUE: texImage2D: no image @ https://static.canva.com/web/f7fc9859d7cfc81b.vendor.js:1
+[    5479ms] [WARNING] Fragl warning:  image may come from a different origin but you did not set the crossOrigin attribute. @ https://static.canva.com/web/de7b6a15ca4634aa.sentry_browser.js:0
+[    5479ms] [WARNING] WebGL: INVALID_VALUE: texImage2D: no image @ https://static.canva.com/web/f7fc9859d7cfc81b.vendor.js:1
+[    5481ms] [WARNING] Fragl warning:  image may come from a different origin but you did not set the crossOrigin attribute. @ https://static.canva.com/web/de7b6a15ca4634aa.sentry_browser.js:0
+[    5481ms] [WARNING] WebGL: INVALID_VALUE: texImage2D: no image @ https://static.canva.com/web/f7fc9859d7cfc81b.vendor.js:1
+[    5481ms] [WARNING] Fragl warning:  image may come from a different origin but you did not set the crossOrigin attribute. @ https://static.canva.com/web/de7b6a15ca4634aa.sentry_browser.js:0
+[    5481ms] [WARNING] WebGL: INVALID_VALUE: texImage2D: no image @ https://static.canva.com/web/f7fc9859d7cfc81b.vendor.js:1
+[    5602ms] [WARNING] Fragl warning:  image may come from a different origin but you did not set the crossOrigin attribute. @ https://static.canva.com/web/de7b6a15ca4634aa.sentry_browser.js:0
+[    5602ms] [WARNING] WebGL: INVALID_VALUE: texImage2D: no image @ https://static.canva.com/web/f7fc9859d7cfc81b.vendor.js:1
+[    5602ms] [WARNING] Fragl warning:  image may come from a different origin but you did not set the crossOrigin attribute. @ https://static.canva.com/web/de7b6a15ca4634aa.sentry_browser.js:0
+[    5602ms] [WARNING] WebGL: INVALID_VALUE: texImage2D: no image @ https://static.canva.com/web/f7fc9859d7cfc81b.vendor.js:1
+[    7007ms] [WARNING] [GSI_LOGGER]: Your client application uses one of the Google One Tap prompt UI status methods that may stop functioning when FedCM becomes mandatory. Refer to the migration guide to update your code accordingly and opt-in to FedCM to test your changes. Learn more: https://developers.google.com/identity/gsi/web/guides/fedcm-migration?s=dc#display_moment and https://developers.google.com/identity/gsi/web/guides/fedcm-migration?s=dc#skipped_moment @ https://static.canva.com/web/de7b6a15ca4634aa.sentry_browser.js:0
+[    7011ms] [ERROR] Not signed in with the identity provider. @ https://www.canva.com/design/DAHHAWJHOiQ/YXc8zlaFTcLKPg5O6kppDw/edit?ui=eyJEIjp7IkoiOnsiRCI6eyJBPyI6IkEifX0sIlMiOnRydWV9LCJBIjp7IkEiOiJkb3dubG9hZF9wbmciLCJGIjp0cnVlfSwiRyI6eyJCIjp0cnVlLCJEIjp7IkQiOnsiQT8iOiJBIiwiQSI6IkIifX19fQ:0
+[    9356ms] [ERROR] [GSI_LOGGER]: FedCM get() rejects with NetworkError: Error retrieving a token. @ https://static.canva.com/web/de7b6a15ca4634aa.sentry_browser.js:0
+[   10749ms] [LOG] %cCanva was built with TypeScript, React, MobX, RxJS, PostCSS, webpack, and lots of love. text-shadow: #a0f9fa 0 0 2px; font-family: monospace; font-size: 1.4em; @ https://static.canva.com/web/de7b6a15ca4634aa.sentry_browser.js:0
+[   10749ms] [LOG] %cWant to work with us? Check out https://www.canva.com/careers/ text-shadow: #a0f9fa 0 0 2px; font-family: monospace; font-size: 1.4em; @ https://static.canva.com/web/de7b6a15ca4634aa.sentry_browser.js:0
+[   10749ms] [LOG] %cWant to work alongside us? check out our APIs & SDK at https://www.canva.com/developers/ text-shadow: #a0f9fa 0 0 2px; font-family: monospace; font-size: 1.4em; @ https://static.canva.com/web/de7b6a15ca4634aa.sentry_browser.js:0
+[   41898ms] [ERROR] Cross-Origin-Opener-Policy policy would block the window.closed call. @ https://static.canva.com/web/82c551fa66d51a17.js:1107
+[   41899ms] [ERROR] Cross-Origin-Opener-Policy policy would block the window.closed call. @ https://static.canva.com/web/82c551fa66d51a17.js:1107
+[   57890ms] [WARNING] Blocked aria-hidden on an element because its descendant retained focus. The focus must not be hidden from assistive technology users. Avoid using aria-hidden on a focused element or its ancestor. Consider using the inert attribute instead, which will also prevent focus. For more details, see the aria-hidden section of the WAI-ARIA specification at https://w3c.github.io/aria/#aria-hidden.
+Element with focus: <button._5KtATA LQzFZw VgvqkQ _8ERLTg Z3nT2A LQzFZw VgvqkQ _4_iekA _3oHQrw j34Zww aqbYPg _3FvZZg w_WokQ _7IvJg>
+Ancestor with aria-hidden: <div.KxXR9g JFJaKQ> @ https://www.canva.com/design/DAHHAWJHOiQ/YXc8zlaFTcLKPg5O6kppDw/edit?ui=eyJEIjp7IkoiOnsiRCI6eyJBPyI6IkEifX0sIlMiOnRydWV9LCJBIjp7IkEiOiJkb3dubG9hZF9wbmciLCJGIjp0cnVlfSwiRyI6eyJCIjp0cnVlLCJEIjp7IkQiOnsiQT8iOiJBIiwiQSI6IkIifX19fQ:0
+[   60755ms] [WARNING] Blocked aria-hidden on an element because its descendant retained focus. The focus must not be hidden from assistive technology users. Avoid using aria-hidden on a focused element or its ancestor. Consider using the inert attribute instead, which will also prevent focus. For more details, see the aria-hidden section of the WAI-ARIA specification at https://w3c.github.io/aria/#aria-hidden.
+Element with focus: <button._5KtATA LQzFZw VgvqkQ _8ERLTg Z3nT2A LQzFZw VgvqkQ _4_iekA j34Zww aqbYPg _3FvZZg>
+Ancestor with aria-hidden: <div.KxXR9g JFJaKQ> @ https://www.canva.com/design/DAHHAWJHOiQ/YXc8zlaFTcLKPg5O6kppDw/edit?ui=eyJEIjp7IkoiOnsiRCI6eyJBPyI6IkEifX0sIlMiOnRydWV9LCJBIjp7IkEiOiJkb3dubG9hZF9wbmciLCJGIjp0cnVlfSwiRyI6eyJCIjp0cnVlLCJEIjp7IkQiOnsiQT8iOiJBIiwiQSI6IkIifX19fQ:0
+[   63128ms] [ERROR] Cross-Origin-Opener-Policy policy would block the window.closed call. @ https://static.canva.com/web/82c551fa66d51a17.js:1107
+[   63129ms] [ERROR] Cross-Origin-Opener-Policy policy would block the window.closed call. @ https://static.canva.com/web/82c551fa66d51a17.js:1107

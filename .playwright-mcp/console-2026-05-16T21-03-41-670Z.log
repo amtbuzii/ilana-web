@@ -1,0 +1,143 @@
+[     242ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:21550
+[  964358ms] ReferenceError: selected is not defined
+    at WaypointPanel (http://localhost:5173/src/components/WaypointPanel.jsx?t=1778966385978:42:107)
+    at renderWithHooks (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:11548:26)
+    at mountIndeterminateComponent (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:14926:21)
+    at beginWork (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:15914:22)
+    at HTMLUnknownElement.callCallback2 (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:3674:22)
+    at Object.invokeGuardedCallbackDev (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:3699:24)
+    at invokeGuardedCallback (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:3733:39)
+    at beginWork$1 (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:19765:15)
+    at performUnitOfWork (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:19198:20)
+    at workLoopSync (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:19137:13)
+[  964360ms] ReferenceError: selected is not defined
+    at WaypointPanel (http://localhost:5173/src/components/WaypointPanel.jsx?t=1778966385978:42:107)
+    at renderWithHooks (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:11548:26)
+    at mountIndeterminateComponent (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:14926:21)
+    at beginWork (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:15914:22)
+    at HTMLUnknownElement.callCallback2 (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:3674:22)
+    at Object.invokeGuardedCallbackDev (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:3699:24)
+    at invokeGuardedCallback (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:3733:39)
+    at beginWork$1 (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:19765:15)
+    at performUnitOfWork (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:19198:20)
+    at workLoopSync (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:19137:13)
+[  964361ms] [ERROR] The above error occurred in the <WaypointPanel> component:
+
+    at WaypointPanel (http://localhost:5173/src/components/WaypointPanel.jsx?t=1778966385978:21:41)
+    at div
+    at div
+    at div
+    at div
+    at div
+    at App (http://localhost:5173/src/App.jsx?t=1778966382429:198:36)
+    at ThemeProvider (http://localhost:5173/src/theme.jsx:79:33)
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:14031
+[  964362ms] ReferenceError: selected is not defined
+    at WaypointPanel (http://localhost:5173/src/components/WaypointPanel.jsx?t=1778966385978:42:107)
+    at renderWithHooks (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:11548:26)
+    at mountIndeterminateComponent (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:14926:21)
+    at beginWork (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:15914:22)
+    at beginWork$1 (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:19753:22)
+    at performUnitOfWork (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:19198:20)
+    at workLoopSync (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:19137:13)
+    at renderRootSync (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:19116:15)
+    at recoverFromConcurrentError (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:18736:28)
+    at performSyncWorkOnRoot (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:18879:28)
+[  973030ms] ReferenceError: selected is not defined
+    at WaypointPanel (http://localhost:5173/src/components/WaypointPanel.jsx?t=1778966394652:42:107)
+    at renderWithHooks (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:11548:26)
+    at mountIndeterminateComponent (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:14926:21)
+    at beginWork (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:15914:22)
+    at HTMLUnknownElement.callCallback2 (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:3674:22)
+    at Object.invokeGuardedCallbackDev (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:3699:24)
+    at invokeGuardedCallback (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:3733:39)
+    at beginWork$1 (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:19765:15)
+    at performUnitOfWork (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:19198:20)
+    at workLoopSync (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:19137:13)
+[  973032ms] ReferenceError: selected is not defined
+    at WaypointPanel (http://localhost:5173/src/components/WaypointPanel.jsx?t=1778966394652:42:107)
+    at renderWithHooks (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:11548:26)
+    at mountIndeterminateComponent (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:14926:21)
+    at beginWork (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:15914:22)
+    at HTMLUnknownElement.callCallback2 (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:3674:22)
+    at Object.invokeGuardedCallbackDev (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:3699:24)
+    at invokeGuardedCallback (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:3733:39)
+    at beginWork$1 (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:19765:15)
+    at performUnitOfWork (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:19198:20)
+    at workLoopSync (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:19137:13)
+[  973033ms] [ERROR] The above error occurred in the <WaypointPanel> component:
+
+    at WaypointPanel (http://localhost:5173/src/components/WaypointPanel.jsx?t=1778966394652:21:41)
+    at div
+    at div
+    at div
+    at div
+    at div
+    at App (http://localhost:5173/src/App.jsx?t=1778966382429:198:36)
+    at ThemeProvider (http://localhost:5173/src/theme.jsx:79:33)
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:14031
+[  973033ms] ReferenceError: selected is not defined
+    at WaypointPanel (http://localhost:5173/src/components/WaypointPanel.jsx?t=1778966394652:42:107)
+    at renderWithHooks (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:11548:26)
+    at mountIndeterminateComponent (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:14926:21)
+    at beginWork (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:15914:22)
+    at beginWork$1 (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:19753:22)
+    at performUnitOfWork (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:19198:20)
+    at workLoopSync (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:19137:13)
+    at renderRootSync (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:19116:15)
+    at recoverFromConcurrentError (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:18736:28)
+    at performSyncWorkOnRoot (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:18879:28)
+[  975092ms] ReferenceError: selected is not defined
+    at http://localhost:5173/src/components/WaypointPanel.jsx?t=1778966396709:211:23
+    at Array.map (<anonymous>)
+    at WaypointPanel (http://localhost:5173/src/components/WaypointPanel.jsx?t=1778966396709:202:15)
+    at renderWithHooks (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:11548:26)
+    at mountIndeterminateComponent (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:14926:21)
+    at beginWork (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:15914:22)
+    at HTMLUnknownElement.callCallback2 (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:3674:22)
+    at Object.invokeGuardedCallbackDev (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:3699:24)
+    at invokeGuardedCallback (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:3733:39)
+    at beginWork$1 (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:19765:15)
+[  975093ms] ReferenceError: selected is not defined
+    at http://localhost:5173/src/components/WaypointPanel.jsx?t=1778966396709:211:23
+    at Array.map (<anonymous>)
+    at WaypointPanel (http://localhost:5173/src/components/WaypointPanel.jsx?t=1778966396709:202:15)
+    at renderWithHooks (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:11548:26)
+    at mountIndeterminateComponent (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:14926:21)
+    at beginWork (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:15914:22)
+    at HTMLUnknownElement.callCallback2 (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:3674:22)
+    at Object.invokeGuardedCallbackDev (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:3699:24)
+    at invokeGuardedCallback (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:3733:39)
+    at beginWork$1 (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:19765:15)
+[  975094ms] [ERROR] The above error occurred in the <WaypointPanel> component:
+
+    at WaypointPanel (http://localhost:5173/src/components/WaypointPanel.jsx?t=1778966396709:21:41)
+    at div
+    at div
+    at div
+    at div
+    at div
+    at App (http://localhost:5173/src/App.jsx?t=1778966382429:198:36)
+    at ThemeProvider (http://localhost:5173/src/theme.jsx:79:33)
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:14031
+[  975094ms] ReferenceError: selected is not defined
+    at http://localhost:5173/src/components/WaypointPanel.jsx?t=1778966396709:211:23
+    at Array.map (<anonymous>)
+    at WaypointPanel (http://localhost:5173/src/components/WaypointPanel.jsx?t=1778966396709:202:15)
+    at renderWithHooks (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:11548:26)
+    at mountIndeterminateComponent (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:14926:21)
+    at beginWork (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:15914:22)
+    at beginWork$1 (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:19753:22)
+    at performUnitOfWork (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:19198:20)
+    at workLoopSync (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:19137:13)
+    at renderRootSync (http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:19116:15)
+[ 2604468ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:21550
+[ 2608815ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:21550
+[ 2610790ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:21550
+[ 2612901ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=14b5a0a0:21550

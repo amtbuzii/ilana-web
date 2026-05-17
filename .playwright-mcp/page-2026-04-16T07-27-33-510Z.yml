@@ -1,0 +1,278 @@
+- generic [ref=e3]:
+  - generic [ref=e4]:
+    - img "ILANA" [ref=e5]
+    - button "ℹ ABOUT" [ref=e6] [cursor=pointer]:
+      - generic [ref=e7]: ℹ
+      - generic [ref=e8]: ABOUT
+    - button "◑ GREEN" [ref=e9] [cursor=pointer]:
+      - generic [ref=e10]: ◑
+      - generic [ref=e11]: GREEN
+    - button "+ NEW" [ref=e12] [cursor=pointer]:
+      - generic [ref=e13]: +
+      - generic [ref=e14]: NEW
+    - button "↑ LOAD" [ref=e15] [cursor=pointer]:
+      - generic [ref=e16]: ↑
+      - generic [ref=e17]: LOAD
+    - button "⇑ XLS IN" [ref=e18] [cursor=pointer]:
+      - generic [ref=e19]: ⇑
+      - generic [ref=e20]: XLS IN
+    - button "↓ SAVE" [ref=e21] [cursor=pointer]:
+      - generic [ref=e22]: ↓
+      - generic [ref=e23]: SAVE
+    - button "⚙ SET" [ref=e24] [cursor=pointer]:
+      - generic [ref=e25]: ⚙
+      - generic [ref=e26]: SET
+    - button "? HELP" [ref=e27] [cursor=pointer]:
+      - generic [ref=e28]: "?"
+      - generic [ref=e29]: HELP
+    - button "✎ NOTES" [ref=e30] [cursor=pointer]:
+      - generic [ref=e31]: ✎
+      - generic [ref=e32]: NOTES
+    - button "⚠ WCA" [ref=e33] [cursor=pointer]:
+      - generic [ref=e34]: ⚠
+      - generic [ref=e35]: WCA
+  - generic [ref=e36]:
+    - generic [ref=e38]:
+      - generic [ref=e39]: ILANA
+      - generic [ref=e40]: APACHE · MISSION PLANNER
+      - generic [ref=e41]:
+        - generic [ref=e42]: ROUTE
+        - generic [ref=e43]: Route 1
+    - generic [ref=e44]:
+      - generic [ref=e46] [cursor=pointer]:
+        - generic [ref=e47]: AIRCRAFT
+        - generic [ref=e48]:
+          - generic [ref=e49]: AH-64D
+          - generic [ref=e50]: ETF 0.950
+          - generic [ref=e51]: ▼
+      - generic [ref=e53] [cursor=pointer]:
+        - generic [ref=e54]: WING STORES
+        - generic [ref=e55]:
+          - generic [ref=e56]: ATF 0.992
+          - generic [ref=e57]: ΔF -0.810
+          - generic [ref=e58]: ▼
+      - generic [ref=e60] [cursor=pointer]:
+        - generic [ref=e61]: WEIGHT
+        - generic [ref=e62]:
+          - generic [ref=e63]: GW 17,851 LBS
+          - generic [ref=e64]: ▼
+      - generic [ref=e66] [cursor=pointer]:
+        - generic [ref=e67]: NAVIGATION
+        - generic [ref=e68]:
+          - generic [ref=e69]: AGL 1000 FT
+          - generic [ref=e70]: ISA 25°C
+          - generic [ref=e71]: ▼
+      - generic [ref=e73] [cursor=pointer]:
+        - generic [ref=e74]: WIND
+        - generic [ref=e75]:
+          - generic [ref=e76]: 270° / 20KT
+          - generic [ref=e77]: ▼
+      - generic [ref=e78]:
+        - generic [ref=e79] [cursor=pointer]:
+          - generic [ref=e80]: WAYPOINTS
+          - generic [ref=e82]: ▲
+        - generic [ref=e84]:
+          - generic [ref=e85]:
+            - generic [ref=e86]:
+              - generic [ref=e87]: WAYPOINTS
+              - generic [ref=e88]: CLICK MAP TO ADD
+            - generic [ref=e89]:
+              - button "⇅ REV" [ref=e90] [cursor=pointer]
+              - button "+ ADD" [ref=e91] [cursor=pointer]
+          - generic [ref=e92]:
+            - generic [ref=e93] [cursor=pointer]:
+              - generic [ref=e94]:
+                - generic "Drag to reorder" [ref=e95]: ⠿
+                - generic [ref=e96]: "1"
+                - generic [ref=e97]: WP1
+                - button "⏱" [ref=e98]
+                - button "▶" [ref=e99]
+              - generic [ref=e100]:
+                - generic [ref=e101]:
+                  - generic [ref=e102]: 31.6800° 34.7935°
+                  - generic [ref=e202]: 36 · 670000 · 3 · 506362
+                - button "🗑" [ref=e103]
+            - generic [ref=e203]:
+              - generic [ref=e204]:
+                - generic [ref=e205]: NAME
+                - textbox "WP1" [ref=e206]
+              - generic [ref=e207]:
+                - generic [ref=e208]:
+                  - button "UTM" [ref=e209] [cursor=pointer]
+                  - button "GEO" [ref=e210] [cursor=pointer]
+                - generic [ref=e211]:
+                  - generic [ref=e212]:
+                    - generic [ref=e213]: ZONE
+                    - textbox "36" [ref=e214]
+                  - generic [ref=e215]:
+                    - generic [ref=e216]: "N"
+                    - textbox "3" [ref=e217]
+                  - generic [ref=e218]:
+                    - generic [ref=e219]: EASTING
+                    - textbox "674335" [ref=e220]: "670000"
+                  - generic [ref=e221]:
+                    - generic [ref=e222]: NORTHING
+                    - textbox "480879" [active] [ref=e223]: "506362"
+                  - button "↻" [ref=e224] [cursor=pointer]
+              - generic [ref=e226]:
+                - generic [ref=e227]:
+                  - generic [ref=e228]: ALT FT
+                  - textbox "1000" [ref=e229]: "1381"
+                - generic [ref=e230]:
+                  - generic [ref=e231]: SURFACE
+                  - textbox "DSM" [ref=e232]: "381"
+                - generic [ref=e233]:
+                  - generic [ref=e234]: TAS KTS
+                  - textbox "120" [ref=e235]
+                - generic [ref=e236]:
+                  - generic [ref=e237]: OAT °CELR
+                  - textbox "25" [ref=e238]: "22.3"
+              - generic [ref=e240]:
+                - generic [ref=e241]:
+                  - generic [ref=e242]: WIND DIR °
+                  - textbox "0" [ref=e243]
+                - generic [ref=e244]:
+                  - generic [ref=e245]: WIND SPEED KTS
+                  - textbox "0" [ref=e246]
+              - generic [ref=e247]:
+                - generic [ref=e248]: HOLD / WAITING
+                - generic [ref=e249]:
+                  - button "GND" [ref=e250] [cursor=pointer]
+                  - button "HOVER" [ref=e251] [cursor=pointer]
+                  - button "ENDURANCE" [ref=e252] [cursor=pointer]
+              - generic [ref=e253]:
+                - generic [ref=e254]:
+                  - generic [ref=e255]: SPARE %
+                  - textbox "0" [ref=e256]
+                - generic [ref=e257]: −5 to +40 · applies onwards
+          - generic [ref=e105] [cursor=pointer]:
+            - generic [ref=e106]:
+              - generic "Drag to reorder" [ref=e107]: ⠿
+              - generic [ref=e108]: "2"
+              - generic [ref=e109]: WP2
+              - button "⏱" [ref=e110]
+              - button "▶" [ref=e111]
+            - generic [ref=e112]:
+              - generic [ref=e113]:
+                - generic [ref=e114]: 31.7515° 33.7170°
+                - generic [ref=e258]: 36 · 567911 · 3 · 513118
+              - button "🗑" [ref=e115]
+          - generic [ref=e117] [cursor=pointer]:
+            - generic [ref=e118]:
+              - generic "Drag to reorder" [ref=e119]: ⠿
+              - generic [ref=e120]: "3"
+              - generic [ref=e121]: WP3
+              - button "⏱" [ref=e122]
+              - button "▶" [ref=e123]
+            - generic [ref=e124]:
+              - generic [ref=e125]:
+                - generic [ref=e126]: 32.0360° 33.6525°
+                - generic [ref=e259]: 36 · 561608 · 3 · 544614
+              - button "🗑" [ref=e127]
+          - generic [ref=e129] [cursor=pointer]:
+            - generic [ref=e130]:
+              - generic "Drag to reorder" [ref=e131]: ⠿
+              - generic [ref=e132]: "4"
+              - generic [ref=e133]: WP4
+              - button "⏱" [ref=e134]
+              - button "▶" [ref=e135]
+            - generic [ref=e136]:
+              - generic [ref=e137]:
+                - generic [ref=e138]: 31.9195° 33.5523°
+                - generic [ref=e260]: 36 · 552209 · 3 · 531649
+              - button "🗑" [ref=e139]
+          - generic [ref=e141] [cursor=pointer]:
+            - generic [ref=e142]:
+              - generic "Drag to reorder" [ref=e143]: ⠿
+              - generic [ref=e144]: "5"
+              - generic [ref=e145]: WP5
+              - button "⏱" [ref=e146]
+              - button "▶" [ref=e147]
+            - generic [ref=e148]:
+              - generic [ref=e149]:
+                - generic [ref=e150]: 31.7679° 33.5289°
+                - generic [ref=e261]: 36 · 550083 · 3 · 514828
+              - button "🗑" [ref=e151]
+    - generic [ref=e152]:
+      - button "CALCULATE FLIGHT PLAN" [ref=e153] [cursor=pointer]
+      - generic [ref=e154]: v1.0.0 · 29 Mar 2026 · © 2006 Amit Bouzaglo
+  - generic "Collapse panel" [ref=e156] [cursor=pointer]: ◀
+  - generic [ref=e158]:
+    - generic [ref=e159]:
+      - generic [ref=e160]:
+        - generic:
+          - generic:
+            - img
+          - generic:
+            - button:
+              - img
+            - button:
+              - img
+            - button:
+              - img
+            - button:
+              - img
+            - button [ref=e263] [cursor=pointer]:
+              - img [ref=e264]
+            - button [ref=e265] [cursor=pointer]:
+              - img [ref=e266]
+            - button [ref=e267] [cursor=pointer]:
+              - img [ref=e268]
+            - button [ref=e269] [cursor=pointer]:
+              - img [ref=e270]
+            - button [ref=e271] [cursor=pointer]:
+              - img [ref=e272]
+          - generic:
+            - tooltip "WP1"
+            - tooltip "WP2"
+            - tooltip "WP3"
+            - tooltip "WP4"
+            - tooltip "WP5"
+        - generic:
+          - generic [ref=e273]:
+            - button "Zoom in" [ref=e274] [cursor=pointer]: +
+            - button "Zoom out" [ref=e275] [cursor=pointer]: −
+          - link "Leaflet" [ref=e277] [cursor=pointer]:
+            - /url: https://leafletjs.com
+            - img [ref=e278]
+            - text: Leaflet
+      - generic: Z 9 / 11
+      - generic [ref=e161]:
+        - button "MAP" [ref=e162] [cursor=pointer]
+        - button "TOPO" [ref=e163] [cursor=pointer]
+        - button "ELEV" [ref=e164] [cursor=pointer]
+    - generic:
+      - generic:
+        - generic: Route 1
+    - generic [ref=e165]:
+      - generic [ref=e166]: MAP
+      - slider [ref=e167] [cursor=pointer]: "100"
+      - generic [ref=e168]: 100%
+  - generic "Collapse routes panel" [ref=e170] [cursor=pointer]: ▶
+  - generic [ref=e171]:
+    - generic [ref=e172]:
+      - generic [ref=e173]: PROJECT
+      - generic [ref=e174] [cursor=pointer]:
+        - generic [ref=e175]: Ilana
+        - generic [ref=e176]: ✎
+    - generic [ref=e177]:
+      - generic [ref=e178]:
+        - generic [ref=e179]: ROUTES 1/10
+        - button "+ NEW" [ref=e180] [cursor=pointer]
+      - generic [ref=e182] [cursor=pointer]:
+        - generic [ref=e183]: ⠿
+        - button "Hide on map" [ref=e185]:
+          - img [ref=e186]
+        - generic [ref=e189]: Route 1
+        - generic [ref=e190]:
+          - button "✎" [ref=e191]
+          - button "⧉" [ref=e192]
+    - generic [ref=e193]:
+      - generic [ref=e194]: VISIBILITY
+      - button "ALL" [ref=e195] [cursor=pointer]
+      - button "NONE" [ref=e196] [cursor=pointer]
+    - generic [ref=e197]:
+      - generic [ref=e198]: INSERT ROUTE FROM
+      - generic [ref=e199]:
+        - button "↑ JSON" [ref=e200] [cursor=pointer]
+        - button "↑ EXCEL" [ref=e201] [cursor=pointer]

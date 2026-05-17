@@ -1,0 +1,168 @@
+[     119ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:21550
+[ 3028351ms] [ERROR] Warning: %s a style property during rerender (%s) when a conflicting property is set (%s) can lead to styling bugs. To avoid this, don't mix shorthand and non-shorthand properties for the same value; instead, replace the shorthand with separate values.%s Updating border borderLeft 
+    at div
+    at div
+    at div
+    at App (http://localhost:5173/src/App.jsx?t=1776334020024:198:36)
+    at ThemeProvider (http://localhost:5173/src/theme.jsx:79:33) @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:520
+[ 3028352ms] [ERROR] Warning: %s a style property during rerender (%s) when a conflicting property is set (%s) can lead to styling bugs. To avoid this, don't mix shorthand and non-shorthand properties for the same value; instead, replace the shorthand with separate values.%s Updating border borderRight 
+    at div
+    at div
+    at div
+    at App (http://localhost:5173/src/App.jsx?t=1776334020024:198:36)
+    at ThemeProvider (http://localhost:5173/src/theme.jsx:79:33) @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:520
+[ 3030063ms] [ERROR] Warning: %s a style property during rerender (%s) when a conflicting property is set (%s) can lead to styling bugs. To avoid this, don't mix shorthand and non-shorthand properties for the same value; instead, replace the shorthand with separate values.%s Updating border borderLeft 
+    at div
+    at div
+    at div
+    at App (http://localhost:5173/src/App.jsx?t=1776334020024:198:36)
+    at ThemeProvider (http://localhost:5173/src/theme.jsx:79:33) @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:520
+[ 3030063ms] [ERROR] Warning: %s a style property during rerender (%s) when a conflicting property is set (%s) can lead to styling bugs. To avoid this, don't mix shorthand and non-shorthand properties for the same value; instead, replace the shorthand with separate values.%s Updating border borderRight 
+    at div
+    at div
+    at div
+    at App (http://localhost:5173/src/App.jsx?t=1776334020024:198:36)
+    at ThemeProvider (http://localhost:5173/src/theme.jsx:79:33) @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:520
+[ 3066597ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3066598ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3066626ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3066659ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3066692ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3066725ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3066759ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3066792ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3066836ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3066891ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3066925ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3066958ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3066992ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3067025ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3067057ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3067092ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3067125ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3067159ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3067192ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3067224ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3067258ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3067291ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3067324ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3067358ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3067391ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3069225ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3069258ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3069292ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3069325ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3069359ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3069702ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3069726ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3069759ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3069830ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3069859ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3069892ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3069925ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3069960ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3069992ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3070025ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3070059ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3070791ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3070825ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3070859ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3070892ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3070925ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3070959ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3070992ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3071025ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3072501ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3072533ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3072567ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3072567ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3072567ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3072601ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3072634ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3072667ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3072700ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3072733ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3072766ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3072800ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3072833ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3072866ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3072900ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3072933ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3072966ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3073000ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3073033ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3073106ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3073133ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3073166ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3073199ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3073233ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3073266ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3073300ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3073333ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3160734ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3160765ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3160799ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3160833ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3160866ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3160899ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3160933ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3160966ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3160999ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3161033ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3161066ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3161099ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3161133ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3161166ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3161199ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3161232ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3161265ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3161299ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3161332ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3161365ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3161399ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3161432ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3161465ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3161499ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3161532ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3161832ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3161867ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3161899ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3161932ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3161966ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3161999ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3162033ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3162068ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3162100ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3162133ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3162167ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3162199ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3162233ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3162266ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3162311ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3162366ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3162400ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3162433ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3162466ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3162500ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3162533ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3162566ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3162600ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3162633ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3162666ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3162700ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3162733ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3162766ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3162799ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3162832ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3162865ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3162899ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3162932ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3162965ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3162999ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3163032ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3163065ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3163099ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3163132ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 3163232ms] [ERROR] Unable to preventDefault inside passive event listener invocation. @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:5759
+[ 5118794ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:21550
+[ 5120039ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/chunk-NGODP64W.js?v=2cc2a969:21550

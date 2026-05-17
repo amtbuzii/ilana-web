@@ -1,38 +1,36 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import * as api from '../api.js'
+import { useTheme } from '../theme.jsx'
 
 export default function NotesPanel({
   routes,
   settings,
-  bingoTargetMode,
+  activeRoute,
   onRequestMapClick,
-  onCancelMapClick,
   pendingBingoTarget,
   onBingoTargetConsumed,
-  onClose,
+  bingoTargetMode,
 }) {
-  const [selectedRouteId, setSelectedRouteId] = useState(routes.length > 0 ? routes[0].id : null)
+  const { t } = useTheme()
+  const [selectedRouteId, setSelectedRouteId] = useState(activeRoute?.id ?? routes[0]?.id)
   const [windScenarios, setWindScenarios] = useState([])
   const [windResults, setWindResults] = useState([])
   const [calcLoading, setCalcLoading] = useState(false)
-
   const [bingoPairs, setBingoPairs] = useState([])
   const [bingoResults, setBingoResults] = useState([])
   const [bingoCalcLoading, setBingoCalcLoading] = useState(false)
+  const [activeTab, setActiveTab] = useState('wind') // 'config' | 'wind' | 'bingo'
   const [editingPairId, setEditingPairId] = useState(null)
-
   const [windIdCounter, setWindIdCounter] = useState(0)
   const [bingoIdCounter, setBingoIdCounter] = useState(0)
-  const [minimized, setMinimized] = useState(false)
-  const [activeTab, setActiveTab] = useState('wind')
 
-  // Ui state for wind scenario builder
   const [windMode, setWindMode] = useState('HEADWIND')
   const [windDirection, setWindDirection] = useState(270)
   const [windSpeed, setWindSpeed] = useState(15)
-
-  // Ui state for bingo pair builder
   const [newBingoSourceIdx, setNewBingoSourceIdx] = useState(0)
+
+  const [windExpanded, setWindExpanded] = useState(true)
+  const [bingoExpanded, setBingoExpanded] = useState(true)
 
   const route = routes.find(r => r.id === selectedRouteId)
 
@@ -46,12 +44,11 @@ export default function NotesPanel({
     const dLon = toRad(lon2 - lon1)
     const y = Math.sin(dLon) * Math.cos(toRad(lat2))
     const x = Math.cos(toRad(lat1)) * Math.sin(toRad(lat2)) - Math.sin(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.cos(dLon)
-    const bearing = (toDeg(Math.atan2(y, x)) + 360) % 360
-    return bearing
+    return (toDeg(Math.atan2(y, x)) + 360) % 360
   }
 
   function haversineNm(lat1, lon1, lat2, lon2) {
-    const R = 3440.065 // Earth radius in NM
+    const R = 3440.065
     const toRad = (deg) => (deg * Math.PI) / 180
     const dLat = toRad(lat2 - lat1)
     const dLon = toRad(lon2 - lon1)
@@ -67,7 +64,6 @@ export default function NotesPanel({
         wind_speed_kts: scenario.speed,
       }))
     }
-
     const offsetMap = {
       HEADWIND: 0,
       TAILWIND: 180,
@@ -75,14 +71,11 @@ export default function NotesPanel({
       LEFT_CROSS: 270,
     }
     const baseOffset = offsetMap[scenario.mode] ?? 0
-
     return waypoints.map((w, i) => {
       const nextW = waypoints[i + 1]
       if (!nextW) return w
-
       const bearing = legBearing(w.lat, w.lon, nextW.lat, nextW.lon)
       const windDir = (bearing + baseOffset + 360) % 360
-
       return {
         ...w,
         wind_dir: windDir,
@@ -109,18 +102,51 @@ export default function NotesPanel({
       delta_f: Math.round(((parseFloat(cfg.globalAtf) || 1.0) - 1) * 100 * 1000) / 1000,
       etf_eng1: parseFloat(cfg.etfEng1) || 0.95,
       etf_eng2: parseFloat(cfg.etfEng2) || 0.95,
-      wca_thresholds: {
-        torque_pct: null,
-        pa_pct: null,
-        oge_flag: false,
-        ige_flag: false,
-      },
+      wca_thresholds: { torque_pct: null, pa_pct: null, oge_flag: false, ige_flag: false },
     }
   }
 
-  function isaTemperature(altFt) {
-    return 59 - 0.00356 * altFt
-  }
+  // ─────────────────────────────────────────────────────────────
+  // Map click handler
+  // ─────────────────────────────────────────────────────────────
+
+  useEffect(() => {
+    if (!pendingBingoTarget || editingPairId === null) return
+    const elevFetch = async () => {
+      try {
+        const { elevation_ft } = await api.fetchElevation(pendingBingoTarget.lat, pendingBingoTarget.lon)
+        const elev = Math.round(elevation_ft)
+        setBingoPairs(prev =>
+          prev.map(p =>
+            p.id === editingPairId
+              ? {
+                  ...p,
+                  targetLatLon: pendingBingoTarget,
+                  targetElev: elev,
+                  coordinateMode: 'done',
+                }
+              : p
+          )
+        )
+      } catch (err) {
+        setBingoPairs(prev =>
+          prev.map(p =>
+            p.id === editingPairId
+              ? {
+                  ...p,
+                  targetLatLon: pendingBingoTarget,
+                  targetElev: 0,
+                  coordinateMode: 'done',
+                }
+              : p
+          )
+        )
+      }
+    }
+    elevFetch()
+    onBingoTargetConsumed()
+    setEditingPairId(null)
+  }, [pendingBingoTarget, editingPairId, onBingoTargetConsumed])
 
   // ─────────────────────────────────────────────────────────────
   // Wind calculation
@@ -132,16 +158,13 @@ export default function NotesPanel({
       alert('Route must have at least 2 waypoints')
       return
     }
-
     setCalcLoading(true)
     const initialFuel = parseFloat(route.config?.initFuel) || 0
     const basePayload = buildBasePayload(route, settings)
-
     try {
       const promises = windScenarios.map(async (scenario) => {
         try {
           const modifiedWaypoints = applyWindScenario(route.waypoints, scenario)
-          // Ensure all required waypoint fields are present
           const validWaypoints = modifiedWaypoints.map(w => ({
             name: w.name || '',
             lat: parseFloat(w.lat),
@@ -165,206 +188,30 @@ export default function NotesPanel({
           const result = await api.calculateFlightPlan(payload)
           return { scenarioId: scenario.id, status: 'done', data: result, error: null }
         } catch (err) {
-          console.error('Wind scenario error:', err)
           return { scenarioId: scenario.id, status: 'error', data: null, error: err.message }
         }
       })
-
       const results = await Promise.all(promises)
       setWindResults(results)
+      setActiveTab('wind')
     } finally {
       setCalcLoading(false)
     }
   }, [route, windScenarios])
 
   // ─────────────────────────────────────────────────────────────
-  // Bingo calculation
-  // ─────────────────────────────────────────────────────────────
-
-  const calculateBingo = useCallback(async () => {
-    if (!route || windResults.length === 0 || bingoPairs.length === 0) return
-
-    const allWindDone = windResults.every(r => r.status === 'done')
-    if (!allWindDone) {
-      alert('Calculate wind scenarios first')
-      return
-    }
-
-    const allPairsResolved = bingoPairs.every(p => p.targetLatLon && !p.editingUtm)
-    if (!allPairsResolved) {
-      alert('All bingo pairs must have resolved targets')
-      return
-    }
-
-    setBingoCalcLoading(true)
-    const basePayload = buildBasePayload(route, settings)
-
-    try {
-      const results = []
-
-      for (const pair of bingoPairs) {
-        const cells = []
-
-        for (const windResult of windResults) {
-          if (windResult.status !== 'done') {
-            cells.push({ scenarioId: windResult.scenarioId, status: 'error', time_min: null, fuel_needed_lbs: null, distance_nm: null })
-            continue
-          }
-
-          try {
-            const scenario = windScenarios.find(s => s.id === windResult.scenarioId)
-            const srcWpt = windResult.data.waypoints[pair.sourceWptIdx]
-            if (!srcWpt) throw new Error('Invalid source waypoint index')
-
-            // Bingo distance
-            const distNm = haversineNm(srcWpt.lat, srcWpt.lon, pair.targetLatLon.lat, pair.targetLatLon.lon)
-
-            // Wind direction for bingo leg
-            const bearing = legBearing(srcWpt.lat, srcWpt.lon, pair.targetLatLon.lat, pair.targetLatLon.lon)
-            let bingoWindDir = scenario.direction
-
-            if (scenario.mode === 'FIXED') {
-              bingoWindDir = scenario.direction
-            } else {
-              const offsetMap = {
-                HEADWIND: 0,
-                TAILWIND: 180,
-                RIGHT_CROSS: 90,
-                LEFT_CROSS: 270,
-              }
-              bingoWindDir = (bearing + (offsetMap[scenario.mode] ?? 0) + 360) % 360
-            }
-
-            // 2-waypoint bingo payload
-            const oat = srcWpt.oat_c ?? 15
-            const altFt = srcWpt.alt_ft ?? 0
-
-            const bingoPayload = {
-              ...basePayload,
-              initial_fuel_lbs: srcWpt.fuel_remaining_lbs,
-              waypoints: [
-                {
-                  name: `WP${pair.sourceWptIdx + 1}`,
-                  lat: parseFloat(srcWpt.lat),
-                  lon: parseFloat(srcWpt.lon),
-                  alt_ft: parseFloat(altFt),
-                  airspeed_kts: 120,
-                  oat_c: parseFloat(oat),
-                  atf: 1.0,
-                  wind_dir: Math.round(bingoWindDir),
-                  wind_speed_kts: scenario.speed,
-                },
-                {
-                  name: pair.targetLabel || 'TARGET',
-                  lat: parseFloat(pair.targetLatLon.lat),
-                  lon: parseFloat(pair.targetLatLon.lon),
-                  alt_ft: parseFloat(pair.targetElev ?? 0),
-                  airspeed_kts: 120,
-                  oat_c: parseFloat(isaTemperature(pair.targetElev ?? 0)),
-                  atf: 1.0,
-                  wind_dir: Math.round(bingoWindDir),
-                  wind_speed_kts: scenario.speed,
-                },
-              ],
-            }
-
-            const bingoResult = await api.calculateFlightPlan(bingoPayload)
-            const legFuel = bingoResult.legs?.[0]?.fuel_burned_lbs ?? 0
-            const legTime = bingoResult.legs?.[0]?.leg_time_min ?? 0
-            const fuelNeeded = settings.jokerFuel + legFuel
-
-            cells.push({
-              scenarioId: windResult.scenarioId,
-              status: 'done',
-              time_min: legTime,
-              fuel_needed_lbs: fuelNeeded,
-              distance_nm: distNm,
-            })
-          } catch (err) {
-            cells.push({ scenarioId: windResult.scenarioId, status: 'error', time_min: null, fuel_needed_lbs: null, distance_nm: null })
-          }
-        }
-
-        results.push({ pairId: pair.id, cells })
-      }
-
-      setBingoResults(results)
-    } finally {
-      setBingoCalcLoading(false)
-    }
-  }, [route, windResults, windScenarios, bingoPairs, settings])
-
-  // ─────────────────────────────────────────────────────────────
-  // Map click handshake
-  // ─────────────────────────────────────────────────────────────
-
-  useEffect(() => {
-    if (!pendingBingoTarget || editingPairId === null) return
-
-    const elevFetch = async () => {
-      try {
-        const { elevation_ft } = await api.fetchElevation(pendingBingoTarget.lat, pendingBingoTarget.lon)
-        const elev = Math.round(elevation_ft)
-        setBingoPairs(prev =>
-          prev.map(p =>
-            p.id === editingPairId
-              ? {
-                  ...p,
-                  targetLatLon: pendingBingoTarget,
-                  targetElev: elev,
-                  editingUtm: false,
-                }
-              : p
-          )
-        )
-      } catch (err) {
-        setBingoPairs(prev =>
-          prev.map(p =>
-            p.id === editingPairId
-              ? {
-                  ...p,
-                  targetLatLon: pendingBingoTarget,
-                  targetElev: 0,
-                  editingUtm: false,
-                }
-              : p
-          )
-        )
-      }
-    }
-
-    elevFetch()
-    onBingoTargetConsumed()
-    setEditingPairId(null)
-    setMinimized(false)
-  }, [pendingBingoTarget, editingPairId, onBingoTargetConsumed])
-
-  // ─────────────────────────────────────────────────────────────
   // Wind scenario management
   // ─────────────────────────────────────────────────────────────
-
-  const getWindModeName = (mode) => {
-    const names = {
-      FIXED: 'Fixed',
-      HEADWIND: 'Headwind',
-      TAILWIND: 'Tailwind',
-      RIGHT_CROSS: 'Right Crosswind',
-      LEFT_CROSS: 'Left Crosswind',
-    }
-    return names[mode] || mode
-  }
 
   const addWindScenario = () => {
     const newId = windIdCounter
     setWindIdCounter(windIdCounter + 1)
-
     const scenario = {
       id: newId,
       mode: windMode,
       direction: windMode === 'FIXED' ? windDirection : 0,
       speed: windSpeed,
     }
-
     setWindScenarios([...windScenarios, scenario])
     setWindResults(prev => [...prev, { scenarioId: newId, status: 'idle', data: null, error: null }])
   }
@@ -376,9 +223,9 @@ export default function NotesPanel({
 
   const getWindLabel = (scenario) => {
     if (scenario.mode === 'FIXED') {
-      return `${getWindModeName(scenario.mode)} ${Math.round(scenario.direction)}°/${scenario.speed}KT`
+      return `Fixed ${Math.round(scenario.direction)}°/${scenario.speed}KT`
     }
-    return `${getWindModeName(scenario.mode)} ${scenario.speed}KT`
+    return `${scenario.mode === 'HEADWIND' ? 'HW' : scenario.mode === 'TAILWIND' ? 'TW' : scenario.mode === 'RIGHT_CROSS' ? 'RX' : 'LX'} ${scenario.speed}KT`
   }
 
   // ─────────────────────────────────────────────────────────────
@@ -387,17 +234,15 @@ export default function NotesPanel({
 
   const addBingoPair = () => {
     if (bingoPairs.length >= 5) return
-
     const newId = bingoIdCounter
     setBingoIdCounter(bingoIdCounter + 1)
-
     const newPair = {
       id: newId,
       sourceWptIdx: 0,
       targetLatLon: null,
       targetElev: null,
       targetLabel: '',
-      coordinateMode: 'utm', // 'utm' | 'geo'
+      coordinateMode: 'map', // 'map' | 'utm' | 'geo' | 'done'
       utmZone: '36',
       utmEasting: '',
       utmNorthingPfx: '',
@@ -405,7 +250,6 @@ export default function NotesPanel({
       geoLat: '',
       geoLon: '',
     }
-
     setBingoPairs([...bingoPairs, newPair])
   }
 
@@ -416,10 +260,6 @@ export default function NotesPanel({
 
   const updateBingoSource = (id, sourceWptIdx) => {
     setBingoPairs(bingoPairs.map(p => (p.id === id ? { ...p, sourceWptIdx } : p)))
-  }
-
-  const updateBingoTarget = (id, targetLatLon) => {
-    setBingoPairs(bingoPairs.map(p => (p.id === id ? { ...p, targetLatLon } : p)))
   }
 
   const updateBingoLabel = (id, label) => {
@@ -439,12 +279,13 @@ export default function NotesPanel({
                 ...p,
                 targetLatLon: { lat, lon },
                 targetElev: elev,
+                coordinateMode: 'done',
               }
             : p
         )
       )
     } catch (err) {
-      // silently ignore invalid UTM
+      // silently ignore
     }
   }, [])
 
@@ -459,6 +300,7 @@ export default function NotesPanel({
                 ...p,
                 targetLatLon: { lat, lon },
                 targetElev: elev,
+                coordinateMode: 'done',
               }
             : p
         )
@@ -468,682 +310,348 @@ export default function NotesPanel({
     }
   }, [])
 
-  const getPairLabel = (pair) => {
-    if (!route) return ''
-    const srcWpt = route.waypoints[pair.sourceWptIdx]
-    const srcLabel = srcWpt ? `WP${pair.sourceWptIdx + 1}` : '?'
-    const tgtLabel = pair.targetLabel || (pair.targetLatLon ? `${pair.targetLatLon.lat.toFixed(3)}°/${pair.targetLatLon.lon.toFixed(3)}°` : 'TBD')
-    return `${srcLabel} → ${tgtLabel}`
-  }
-
-  const bingoWindDone = windResults.every(r => r.status !== 'idle' && r.status !== 'loading')
-
   // ─────────────────────────────────────────────────────────────
-  // Render
+  // Styles
   // ─────────────────────────────────────────────────────────────
 
-  const s = {
-    overlay: {
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(0,0,0,0.8)',
-      zIndex: 9999,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    panel: {
-      width: 620,
-      maxHeight: '85vh',
-      overflowY: 'auto',
-      backgroundColor: '#1a1a1a',
-      color: '#fff',
-      borderRadius: 8,
-      boxShadow: '0 4px 20px rgba(0,0,0,0.6)',
-      fontFamily: 'Menlo, monospace',
-      fontSize: 12,
+  const styles = {
+    container: {
+      height: '100%',
       display: 'flex',
       flexDirection: 'column',
+      background: t.bg0,
+      color: t.text0,
+      fontFamily: t.font,
+      fontSize: 11,
     },
     header: {
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
-      padding: 16,
-      borderBottom: '1px solid #333',
-      fontWeight: 'bold',
-      fontSize: 14,
-    },
-    routeSelector: {
-      padding: 12,
-      borderBottom: '1px solid #333',
-      display: 'flex',
-      alignItems: 'center',
-      gap: 12,
-      justifyContent: 'space-between',
-    },
-    routeSelectorLabel: {
-      fontSize: 11,
-      fontWeight: 700,
-      color: '#a0a0a0',
-      textTransform: 'uppercase',
-      letterSpacing: 1,
-    },
-    routeInfo: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: 12,
-    },
-    tabBar: {
-      display: 'flex',
-      borderBottom: '1px solid #333',
-      gap: 0,
-    },
-    tabButton: {
-      padding: '8px 20px',
-      fontSize: 11,
-      fontWeight: 700,
-      cursor: 'pointer',
-      border: 'none',
-      backgroundColor: 'transparent',
-      color: '#666',
-      borderBottom: '2px solid transparent',
-      transition: 'all 0.2s',
-    },
-    tabButtonActive: {
-      color: '#22c55e',
-      borderBottom: '2px solid #22c55e',
-    },
-    tabContent: {
-      flex: 1,
-      overflowY: 'auto',
-    },
-    section: {
-      padding: 16,
-    },
-    sectionTitle: {
-      fontSize: 12,
-      fontWeight: 700,
-      marginBottom: 12,
-      color: '#a0a0a0',
-      textTransform: 'uppercase',
-      letterSpacing: 1,
+      padding: '6px 12px',
+      background: t.bg1,
+      borderBottom: `1px solid ${t.border0}`,
+      flexShrink: 0,
+      gap: 8,
     },
     button: {
-      padding: '6px 12px',
-      fontSize: 11,
-      fontWeight: 600,
-      border: '1px solid #444',
-      borderRadius: 4,
-      backgroundColor: '#222',
-      color: '#fff',
+      padding: '4px 10px',
+      fontSize: 10,
+      border: `1px solid ${t.border0}`,
+      borderRadius: 3,
+      background: t.bg2,
+      color: t.text0,
       cursor: 'pointer',
-      marginRight: 8,
-      marginBottom: 8,
+      fontWeight: 600,
+      fontFamily: t.font,
     },
     buttonPrimary: {
-      padding: '6px 12px',
-      fontSize: 11,
-      fontWeight: 600,
-      border: '1.5px solid #22c55e',
-      borderRadius: 4,
-      backgroundColor: '#0a3a1a',
-      color: '#22c55e',
+      padding: '4px 10px',
+      fontSize: 10,
+      border: `1px solid ${t.accent}`,
+      borderRadius: 3,
+      background: t.accent + '22',
+      color: t.accent,
       cursor: 'pointer',
+      fontWeight: 600,
+      fontFamily: t.font,
     },
-    buttonDisabled: {
-      opacity: 0.5,
-      cursor: 'not-allowed',
+    section: {
+      padding: '8px 12px',
+      borderBottom: `1px solid ${t.border0}`,
     },
-    chip: {
-      display: 'inline-flex',
+    sectionTitle: {
+      fontSize: 10,
+      fontWeight: 700,
+      color: t.text2,
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+      cursor: 'pointer',
+      display: 'flex',
       alignItems: 'center',
       gap: 6,
-      padding: '4px 10px',
-      backgroundColor: '#333',
-      borderRadius: 4,
-      fontSize: 11,
-      marginRight: 8,
-      marginBottom: 8,
     },
-    input: {
-      padding: '4px 8px',
-      fontSize: 11,
-      backgroundColor: '#222',
-      border: '1px solid #444',
-      borderRadius: 3,
-      color: '#fff',
-      marginRight: 8,
-      boxSizing: 'border-box',
-      height: 24,
-      lineHeight: '16px',
+    sectionContent: {
+      marginTop: 8,
+      paddingLeft: 12,
     },
-    select: {
-      padding: '4px 8px',
-      fontSize: 11,
-      backgroundColor: '#222',
-      border: '1px solid #444',
-      borderRadius: 3,
-      color: '#fff',
-      marginRight: 8,
+    tabsContainer: {
+      display: 'flex',
+      gap: 0,
+      borderBottom: `1px solid ${t.border0}`,
+      background: t.bg1,
+      padding: '0 8px',
+      flexShrink: 0,
     },
-    table: {
-      width: '100%',
-      borderCollapse: 'collapse',
-      fontSize: 11,
-      marginTop: 12,
-    },
-    td: {
-      padding: '6px 8px',
-      borderBottom: '1px solid #333',
-      textAlign: 'left',
-    },
-    tdCenter: {
-      padding: '6px 8px',
-      borderBottom: '1px solid #333',
-      textAlign: 'center',
-    },
-    tdWarn: {
-      padding: '6px 8px',
-      borderBottom: '1px solid #333',
-      textAlign: 'center',
-      color: '#ff6b6b',
+    tab: {
+      padding: '6px 12px',
+      fontSize: 10,
+      border: 'none',
+      background: 'transparent',
+      color: t.text2,
+      cursor: 'pointer',
       fontWeight: 600,
+      fontFamily: t.font,
+      borderBottom: `2px solid transparent`,
+    },
+    tabActive: {
+      color: t.accent,
+      borderBottomColor: t.accent,
     },
   }
 
-  return (
-    <div style={{ ...s.overlay, pointerEvents: minimized ? 'none' : 'auto' }} onClick={onClose}>
-      <div style={{ ...s.panel, display: minimized ? 'none' : 'flex' }} onClick={e => e.stopPropagation()}>
-        {/* Header */}
-        <div style={s.header}>
-          <span>✎ WIND ANALYSIS & BINGO</span>
-          <button style={{ ...s.button, marginRight: 0 }} onClick={onClose}>
-            ✕
-          </button>
-        </div>
+  // ─────────────────────────────────────────────────────────────
+  // Render
+  // ─────────────────────────────────────────────────────────────
 
-        {/* Route Selector */}
-        <div style={s.routeSelector}>
-          <select style={{ ...s.select, minWidth: 200, flex: 1 }} value={selectedRouteId || ''} onChange={e => setSelectedRouteId(parseInt(e.target.value))}>
+  return (
+    <div style={styles.container}>
+      {/* Header */}
+      <div style={styles.header}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ fontSize: 10, color: t.text3, textTransform: 'uppercase', fontWeight: 700 }}>Route</span>
+          <select
+            value={selectedRouteId || ''}
+            onChange={e => setSelectedRouteId(parseInt(e.target.value))}
+            style={{
+              fontSize: 10,
+              padding: '2px 6px',
+              border: `1px solid ${t.border0}`,
+              borderRadius: 3,
+              background: t.bg2,
+              color: t.text0,
+              fontFamily: t.font,
+            }}
+          >
             {routes.map(r => (
               <option key={r.id} value={r.id}>
                 {r.name}
               </option>
             ))}
           </select>
-          {route && <span style={{ fontSize: 11, color: '#22c55e', fontWeight: 600, whiteSpace: 'nowrap' }}>✓ {route.waypoints?.length ?? 0} waypoints</span>}
         </div>
-
-        {/* Tab Bar */}
-        <div style={s.tabBar}>
-          {[['wind', 'WIND SCENARIOS'], ['bingo', 'BINGO CALC']].map(([key, label]) => (
-            <button
-              key={key}
-              onClick={() => setActiveTab(key)}
-              style={{ ...s.tabButton, ...(activeTab === key ? s.tabButtonActive : {}) }}
-            >
-              {label}
-            </button>
-          ))}
+        <div style={{ display: 'flex', gap: 4 }}>
+          <button style={styles.button}>⊞ FULL</button>
+          <button style={styles.button}>⬇ EXCEL</button>
+          <button style={styles.button}>⬇ PRINT</button>
         </div>
+      </div>
 
-        {/* Tab Content */}
-        <div style={s.tabContent}>
-          {/* SECTION 1: WIND SCENARIOS */}
-          {activeTab === 'wind' && (
-        <div style={s.section}>
-          <div style={s.sectionTitle}>Wind Scenarios</div>
-
-          {/* Wind mode + speed + ADD all on one line */}
-          <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-            {/* Wind mode buttons */}
-            {[
-              { mode: 'HEADWIND', label: 'Headwind' },
-              { mode: 'TAILWIND', label: 'Tailwind' },
-              { mode: 'R-Cross', label: 'R-Cross' },
-              { mode: 'LEFT_CROSS', label: 'L-Cross' },
-              { mode: 'FIXED', label: 'Fixed' },
-            ].map(({ mode, label }) => (
-              <button
-                key={mode}
-                onClick={() => setWindMode(mode === 'R-Cross' ? 'RIGHT_CROSS' : mode)}
-                style={{
-                  ...s.button,
-                  padding: '4px 8px',
-                  fontSize: 10,
-                  borderColor: windMode === (mode === 'R-Cross' ? 'RIGHT_CROSS' : mode) ? '#22c55e' : '#444',
-                  backgroundColor: windMode === (mode === 'R-Cross' ? 'RIGHT_CROSS' : mode) ? '#0a3a1a' : '#222',
-                  color: windMode === (mode === 'R-Cross' ? 'RIGHT_CROSS' : mode) ? '#22c55e' : '#fff',
-                  marginRight: 0,
-                }}
-              >
-                {label}
-              </button>
-            ))}
-
-            {/* Direction input for FIXED mode */}
-            {windMode === 'FIXED' && (
-              <input
-                type="number"
-                min="0"
-                max="360"
-                style={{ ...s.input, width: 60, marginRight: 0, height: 28, padding: '0 6px', fontSize: 10, boxSizing: 'border-box' }}
-                placeholder="Dir°"
-                value={windDirection}
-                onChange={e => setWindDirection(parseInt(e.target.value) || 0)}
-              />
+      {/* Content */}
+      {activeTab === 'config' ? (
+        <div style={{ flex: 1, overflowY: 'auto', padding: '8px 0' }}>
+          {/* Wind Settings */}
+          <div style={styles.section}>
+            <div style={styles.sectionTitle} onClick={() => setWindExpanded(!windExpanded)}>
+              {windExpanded ? '▼' : '▶'} WIND SCENARIOS
+            </div>
+            {windExpanded && (
+              <div style={styles.sectionContent}>
+                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 8 }}>
+                  {['HEADWIND', 'TAILWIND', 'RIGHT_CROSS', 'LEFT_CROSS', 'FIXED'].map(mode => (
+                    <button
+                      key={mode}
+                      onClick={() => setWindMode(mode)}
+                      style={{
+                        ...styles.button,
+                        ...(windMode === mode ? { background: t.accent + '22', borderColor: t.accent, color: t.accent } : {}),
+                        fontSize: 9,
+                        padding: '3px 8px',
+                      }}
+                    >
+                      {mode.replace('_', ' ')}
+                    </button>
+                  ))}
+                </div>
+                {windMode === 'FIXED' && (
+                  <div style={{ marginBottom: 8 }}>
+                    <input
+                      type="number"
+                      min="0"
+                      max="360"
+                      value={windDirection}
+                      onChange={e => setWindDirection(parseInt(e.target.value) || 0)}
+                      style={{
+                        fontSize: 10,
+                        padding: '3px 6px',
+                        border: `1px solid ${t.border0}`,
+                        borderRadius: 3,
+                        background: t.bg2,
+                        color: t.text0,
+                        fontFamily: t.font,
+                        width: 60,
+                      }}
+                      placeholder="Dir°"
+                    />
+                  </div>
+                )}
+                <div style={{ display: 'flex', gap: 4, alignItems: 'center', marginBottom: 8 }}>
+                  <button onClick={() => setWindSpeed(Math.max(0, windSpeed - 5))} style={{ ...styles.button, padding: '3px 8px', fontSize: 9 }}>−</button>
+                  <input
+                    type="number"
+                    min="0"
+                    max="50"
+                    value={windSpeed}
+                    onChange={e => setWindSpeed(Math.max(0, parseInt(e.target.value) || 0))}
+                    style={{
+                      fontSize: 10,
+                      padding: '3px 6px',
+                      border: `1px solid ${t.border0}`,
+                      borderRadius: 3,
+                      background: t.bg2,
+                      color: t.text0,
+                      fontFamily: t.font,
+                      width: 50,
+                    }}
+                    placeholder="Speed"
+                  />
+                  <span style={{ color: t.text2 }}>KT</span>
+                  <button onClick={() => setWindSpeed(windSpeed + 5)} style={{ ...styles.button, padding: '3px 8px', fontSize: 9 }}>+</button>
+                </div>
+                <div>
+                  {windScenarios.map(scenario => (
+                    <div key={scenario.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', fontSize: 9 }}>
+                      <span>{getWindLabel(scenario)}</span>
+                      <button onClick={() => deleteWindScenario(scenario.id)} style={{ ...styles.button, padding: '2px 6px', fontSize: 8 }}>✕</button>
+                    </div>
+                  ))}
+                </div>
+                <button onClick={addWindScenario} style={{ ...styles.buttonPrimary, width: '100%', marginTop: 8 }}>+ ADD WIND</button>
+              </div>
             )}
+          </div>
 
-            {/* Speed spinner */}
-            <button style={{ ...s.button, padding: '0 6px', marginRight: 0, fontSize: 10, height: 28, boxSizing: 'border-box' }} onClick={() => setWindSpeed(Math.max(0, windSpeed - 5))}>
-              −
-            </button>
-            <input
-              type="number"
-              min="0"
-              style={{ ...s.input, width: 45, marginRight: 0, textAlign: 'center', fontSize: 10, padding: '0 4px', height: 28, boxSizing: 'border-box' }}
-              value={windSpeed}
-              onChange={e => setWindSpeed(parseInt(e.target.value) || 0)}
-            />
-            <button style={{ ...s.button, padding: '0 6px', marginRight: 0, fontSize: 10, height: 28, boxSizing: 'border-box' }} onClick={() => setWindSpeed(windSpeed + 5)}>
-              +
-            </button>
+          {/* Bingo Settings */}
+          <div style={styles.section}>
+            <div style={styles.sectionTitle} onClick={() => setBingoExpanded(!bingoExpanded)}>
+              {bingoExpanded ? '▼' : '▶'} BINGO PAIRS
+            </div>
+            {bingoExpanded && (
+              <div style={styles.sectionContent}>
+                {bingoPairs.map((pair, idx) => (
+                  <div key={pair.id} style={{ padding: '6px', background: t.bg2, borderRadius: 3, marginBottom: 8 }}>
+                    <div style={{ display: 'flex', gap: 4, marginBottom: 6, alignItems: 'center' }}>
+                      <select
+                        value={pair.sourceWptIdx}
+                        onChange={e => updateBingoSource(pair.id, parseInt(e.target.value))}
+                        style={{
+                          fontSize: 9,
+                          padding: '2px 4px',
+                          border: `1px solid ${t.border0}`,
+                          borderRadius: 3,
+                          background: t.bg3,
+                          color: t.text0,
+                          fontFamily: t.font,
+                          flex: 1,
+                        }}
+                      >
+                        {route?.waypoints.map((w, i) => (
+                          <option key={i} value={i}>
+                            WP{i + 1}
+                          </option>
+                        ))}
+                      </select>
+                      <span style={{ color: t.text2 }}>→</span>
+                      {!pair.targetLatLon ? (
+                        <button
+                          onClick={() => {
+                            setEditingPairId(pair.id)
+                            onRequestMapClick()
+                          }}
+                          style={{ ...styles.buttonPrimary, flex: 1, fontSize: 9 }}
+                        >
+                          📍 MAP
+                        </button>
+                      ) : (
+                        <span style={{ fontSize: 9, color: t.accent, flex: 1 }}>
+                          {pair.targetLatLon.lat.toFixed(3)}° / {pair.targetLatLon.lon.toFixed(3)}°
+                        </span>
+                      )}
+                      <button onClick={() => deleteBingoPair(pair.id)} style={{ ...styles.button, padding: '2px 6px', fontSize: 8 }}>✕</button>
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="Label"
+                      value={pair.targetLabel}
+                      onChange={e => updateBingoLabel(pair.id, e.target.value)}
+                      style={{
+                        fontSize: 9,
+                        padding: '3px 6px',
+                        border: `1px solid ${t.border0}`,
+                        borderRadius: 3,
+                        background: t.bg3,
+                        color: t.text0,
+                        fontFamily: t.font,
+                        width: '100%',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                  </div>
+                ))}
+                {bingoPairs.length < 5 && (
+                  <button onClick={addBingoPair} style={{ ...styles.buttonPrimary, width: '100%' }}>+ ADD PAIR</button>
+                )}
+              </div>
+            )}
+          </div>
 
-            {/* ADD button */}
-            <button style={{ ...s.button, marginRight: 0, fontSize: 10, padding: '0 10px', height: 28, boxSizing: 'border-box' }} onClick={addWindScenario}>
-              + ADD
+          {/* Calculate Button */}
+          <div style={{ padding: '8px 12px' }}>
+            <button
+              onClick={calculateWind}
+              disabled={calcLoading || windScenarios.length === 0 || !route}
+              style={{
+                ...styles.buttonPrimary,
+                width: '100%',
+                opacity: calcLoading || windScenarios.length === 0 || !route ? 0.5 : 1,
+                cursor: calcLoading || windScenarios.length === 0 || !route ? 'not-allowed' : 'pointer',
+              }}
+            >
+              {calcLoading ? 'CALCULATING...' : 'CALCULATE'}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Tabs */}
+          <div style={styles.tabsContainer}>
+            <button
+              onClick={() => setActiveTab('config')}
+              style={{ ...styles.tab, ...(activeTab === 'config' ? styles.tabActive : {}) }}
+            >
+              SETTINGS
+            </button>
+            {windResults.map(result => {
+              const scenario = windScenarios.find(s => s.id === result.scenarioId)
+              return (
+                <button
+                  key={result.scenarioId}
+                  onClick={() => setActiveTab(`wind-${result.scenarioId}`)}
+                  style={{
+                    ...styles.tab,
+                    ...(activeTab === `wind-${result.scenarioId}` ? styles.tabActive : {}),
+                  }}
+                >
+                  {scenario ? getWindLabel(scenario) : 'Wind'}
+                </button>
+              )
+            })}
+            <button
+              onClick={() => setActiveTab('bingo')}
+              style={{ ...styles.tab, ...(activeTab === 'bingo' ? styles.tabActive : {}) }}
+            >
+              BINGO
             </button>
           </div>
 
-          {windScenarios.length > 0 && (
-            <div style={{ marginBottom: 12 }}>
-              {windScenarios.map(scenario => (
-                <div key={scenario.id} style={s.chip}>
-                  {getWindLabel(scenario)}
-                  <button
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#888', fontSize: 11 }}
-                    onClick={() => deleteWindScenario(scenario.id)}
-                  >
-                    ✕
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-
-          <button
-            style={{
-              ...s.buttonPrimary,
-              ...(calcLoading || !route || route.waypoints.length < 2 || windScenarios.length === 0 ? s.buttonDisabled : {}),
-            }}
-            onClick={calculateWind}
-            disabled={calcLoading || !route || route.waypoints.length < 2 || windScenarios.length === 0}
-          >
-            {calcLoading ? 'CALCULATING...' : 'CALCULATE'}
-          </button>
-
-          {windResults.length > 0 && (
-            <div style={{ marginTop: 16 }}>
-              {windResults.map((result, idx) => {
-                const scenario = windScenarios.find(s => s.id === result.scenarioId)
-                if (!scenario) return null
-                const data = result.data
-
-                if (result.status === 'error') {
-                  return (
-                    <div key={result.scenarioId} style={{ padding: 8, backgroundColor: '#2a0000', borderRadius: 4, marginBottom: 8, color: '#ff6b6b', fontSize: 10 }}>
-                      <div style={{ fontWeight: 600, marginBottom: 4 }}>{getWindLabel(scenario)}: ERROR</div>
-                      <div style={{ fontSize: 9, color: '#ffaaaa' }}>{result.error || 'Unknown error'}</div>
-                    </div>
-                  )
-                }
-
-                if (result.status === 'done' && data) {
-                  const totalDist = data.total_distance_nm ?? 0
-                  const totalTime = data.total_time_min ?? 0
-                  const totalFuel = data.total_fuel_burned_lbs ?? 0
-
-                  return (
-                    <div key={result.scenarioId} style={{ padding: '6px 10px', backgroundColor: '#1a2a1a', borderRadius: 4, marginBottom: 6 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <span style={{ fontSize: 11, fontWeight: 600, color: '#22c55e' }}>
-                          {getWindLabel(scenario)}
-                        </span>
-                        <span style={{ fontSize: 11, color: '#ccc' }}>
-                          {totalDist.toFixed(1)} NM &nbsp;|&nbsp;
-                          {Math.floor(totalTime)}:{String(Math.round((totalTime % 1) * 60)).padStart(2, '0')} &nbsp;|&nbsp;
-                          {Math.round(totalFuel)} LBS
-                        </span>
-                      </div>
-                    </div>
-                  )
-                }
-
-                return null
-              })}
-            </div>
-          )}
-        </div>
-          )}
-
-          {/* SECTION 2: BINGO */}
-          {activeTab === 'bingo' && (
-          <div style={s.section}>
-          <div style={s.sectionTitle}>Bingo Calculator</div>
-
-          {!bingoWindDone && (
-            <div style={{ padding: 8, backgroundColor: '#2a2200', borderRadius: 4, marginBottom: 12, color: '#ffb800', fontSize: 11 }}>
-              ⚠ Calculate wind scenarios first
-            </div>
-          )}
-
-          {bingoPairs.map((pair, idx) => {
-            const srcWpt = route?.waypoints[pair.sourceWptIdx]
-
-            return (
-              <div key={pair.id} style={{ padding: 12, backgroundColor: '#1a1a1a', border: '1px solid #333', borderRadius: 4, marginBottom: 8 }}>
-                {/* Source waypoint selector */}
-                <div style={{ marginBottom: 12 }}>
-                  <div style={{ fontSize: 10, color: '#999', textTransform: 'uppercase', marginBottom: 4 }}>Source</div>
-                  <select
-                    style={s.select}
-                    value={pair.sourceWptIdx}
-                    onChange={e => updateBingoSource(pair.id, parseInt(e.target.value))}
-                  >
-                    {route?.waypoints.map((w, i) => (
-                      <option key={i} value={i}>
-                        WP{i + 1}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Target coordinates */}
-                {!pair.targetLatLon ? (
-                  <div>
-                    <div style={{ fontSize: 10, color: '#999', textTransform: 'uppercase', marginBottom: 6 }}>Target</div>
-
-                    {/* UTM / GEO toggle */}
-                    <div style={{ display: 'flex', marginBottom: 10, borderRadius: 3, overflow: 'hidden', border: '1px solid #444', height: 28 }}>
-                      {['utm', 'geo'].map(mode => (
-                        <button
-                          key={mode}
-                          onClick={() => setBingoPairs(bingoPairs.map(p => p.id === pair.id ? { ...p, coordinateMode: mode } : p))}
-                          style={{
-                            flex: 1,
-                            padding: 0,
-                            fontSize: 10,
-                            border: 'none',
-                            cursor: 'pointer',
-                            background: pair.coordinateMode === mode ? '#22c55e' : '#222',
-                            color: pair.coordinateMode === mode ? '#000' : '#fff',
-                            fontWeight: 700,
-                            letterSpacing: 1,
-                          }}
-                        >
-                          {mode.toUpperCase()}
-                        </button>
-                      ))}
-                    </div>
-
-                    {/* UTM inputs */}
-                    {pair.coordinateMode === 'utm' && (
-                      <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-                        <div>
-                          <div style={{ fontSize: 9, color: '#999' }}>ZONE</div>
-                          <input
-                            type="text"
-                            maxLength={2}
-                            value={pair.utmZone}
-                            onChange={e => {
-                              const val = e.target.value.replace(/\D/g, '').slice(0, 2)
-                              const newPair = { ...pair, utmZone: val }
-                              setBingoPairs(bingoPairs.map(p => p.id === pair.id ? newPair : p))
-                              if (val && newPair.utmEasting.length === 6 && newPair.utmNorthing.length === 6) {
-                                updateBingoFromUTM(pair.id, parseInt(val), parseInt(newPair.utmEasting), parseInt(newPair.utmNorthingPfx + newPair.utmNorthing))
-                              }
-                            }}
-                            placeholder="36"
-                            style={{ ...s.input, width: 34, textAlign: 'center', marginRight: 0, height: 24 }}
-                          />
-                        </div>
-                        <div>
-                          <div style={{ fontSize: 9, color: '#999' }}>N</div>
-                          <input
-                            type="text"
-                            maxLength={1}
-                            value={pair.utmNorthingPfx}
-                            onChange={e => {
-                              const val = e.target.value.replace(/\D/g, '').slice(0, 1)
-                              setBingoPairs(bingoPairs.map(p => p.id === pair.id ? { ...p, utmNorthingPfx: val } : p))
-                            }}
-                            placeholder="3"
-                            style={{ ...s.input, width: 26, textAlign: 'center', marginRight: 0, height: 24 }}
-                          />
-                        </div>
-                        <div>
-                          <div style={{ fontSize: 9, color: '#999' }}>EASTING</div>
-                          <input
-                            type="text"
-                            maxLength={6}
-                            value={pair.utmEasting}
-                            onChange={e => {
-                              const val = e.target.value.replace(/\D/g, '').slice(0, 6)
-                              const newPair = { ...pair, utmEasting: val }
-                              setBingoPairs(bingoPairs.map(p => p.id === pair.id ? newPair : p))
-                              if (pair.utmZone && val.length === 6 && pair.utmNorthing.length === 6) {
-                                updateBingoFromUTM(pair.id, parseInt(pair.utmZone), parseInt(val), parseInt(pair.utmNorthing + pair.utmNorthingPfx))
-                              }
-                            }}
-                            placeholder="674335"
-                            style={{ ...s.input, width: 64, marginRight: 0, height: 24 }}
-                          />
-                        </div>
-                        <div>
-                          <div style={{ fontSize: 9, color: '#999' }}>NORTHING</div>
-                          <input
-                            type="text"
-                            maxLength={6}
-                            value={pair.utmNorthing}
-                            onChange={e => {
-                              const val = e.target.value.replace(/\D/g, '').slice(0, 6)
-                              const newPair = { ...pair, utmNorthing: val }
-                              setBingoPairs(bingoPairs.map(p => p.id === pair.id ? newPair : p))
-                              if (pair.utmZone && pair.utmEasting.length === 6 && val.length === 6) {
-                                updateBingoFromUTM(pair.id, parseInt(pair.utmZone), parseInt(pair.utmEasting), parseInt(val + pair.utmNorthingPfx))
-                              }
-                            }}
-                            placeholder="480879"
-                            style={{ ...s.input, width: 64, marginRight: 0, height: 24 }}
-                          />
-                        </div>
-                      </div>
-                    )}
-
-                    {/* GEO inputs */}
-                    {pair.coordinateMode === 'geo' && (
-                      <div style={{ display: 'flex', gap: 6, marginBottom: 10, alignItems: 'flex-end' }}>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontSize: 9, color: '#999' }}>LAT</div>
-                          <input
-                            type="text"
-                            value={pair.geoLat}
-                            onChange={e => {
-                              const val = e.target.value
-                              const newPair = { ...pair, geoLat: val }
-                              setBingoPairs(bingoPairs.map(p => p.id === pair.id ? newPair : p))
-                              const lat = parseFloat(val)
-                              const lon = parseFloat(pair.geoLon)
-                              if (!isNaN(lat) && !isNaN(lon) && lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180) {
-                                updateBingoFromLatLon(pair.id, lat, lon)
-                              }
-                            }}
-                            placeholder="32.0853"
-                            style={{ ...s.input, width: '100%', marginRight: 0, height: 24 }}
-                          />
-                        </div>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontSize: 9, color: '#999' }}>LON</div>
-                          <input
-                            type="text"
-                            value={pair.geoLon}
-                            onChange={e => {
-                              const val = e.target.value
-                              const newPair = { ...pair, geoLon: val }
-                              setBingoPairs(bingoPairs.map(p => p.id === pair.id ? newPair : p))
-                              const lat = parseFloat(pair.geoLat)
-                              const lon = parseFloat(val)
-                              if (!isNaN(lat) && !isNaN(lon) && lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180) {
-                                updateBingoFromLatLon(pair.id, lat, lon)
-                              }
-                            }}
-                            placeholder="34.7818"
-                            style={{ ...s.input, width: '100%', marginRight: 0, height: 24 }}
-                          />
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Pick on map button */}
-                    <button
-                      onClick={() => {
-                        setEditingPairId(pair.id)
-                        onRequestMapClick()
-                        setMinimized(true)
-                      }}
-                      style={{
-                        ...s.button,
-                        borderColor: '#22c55e',
-                        backgroundColor: '#0a3a1a',
-                        color: '#22c55e',
-                        width: '100%',
-                        marginBottom: 0,
-                      }}
-                    >
-                      📍 PICK ON MAP
-                    </button>
-                  </div>
-                ) : (
-                  <div style={{ marginBottom: 10 }}>
-                    <div style={{ fontSize: 10, color: '#999', textTransform: 'uppercase', marginBottom: 4 }}>Target</div>
-                    <div style={{ fontSize: 11, color: '#22c55e', fontWeight: 600 }}>
-                      {pair.targetLatLon.lat.toFixed(4)}° / {pair.targetLatLon.lon.toFixed(4)}° | {pair.targetElev}ft
-                    </div>
-                    <button
-                      onClick={() => setBingoPairs(bingoPairs.map(p => p.id === pair.id ? { ...p, targetLatLon: null, targetElev: null, geoLat: '', geoLon: '' } : p))}
-                      style={{ ...s.button, marginTop: 6, fontSize: 10 }}
-                    >
-                      Change
-                    </button>
-                  </div>
-                )}
-
-                {/* Label + delete */}
-                <div style={{ display: 'flex', gap: 6, alignItems: 'flex-end' }}>
-                  <input
-                    type="text"
-                    style={{ ...s.input, flex: 1, marginBottom: 0, marginRight: 0, height: 24 }}
-                    placeholder="Label (e.g. 'BASE A')"
-                    value={pair.targetLabel}
-                    onChange={e => updateBingoLabel(pair.id, e.target.value)}
-                  />
-                  <button
-                    style={{ ...s.button, marginRight: 0, height: 24, marginBottom: 0 }}
-                    onClick={() => deleteBingoPair(pair.id)}
-                  >
-                    ✕
-                  </button>
-                </div>
-              </div>
-            )
-          })}
-
-          {bingoPairs.length < 5 && (
-            <button style={{ ...s.button, marginBottom: 12 }} onClick={addBingoPair}>
-              + ADD PAIR
-            </button>
-          )}
-
-          <button
-            style={{
-              ...s.buttonPrimary,
-              ...(bingoCalcLoading || !bingoWindDone || bingoPairs.length === 0 ? s.buttonDisabled : {}),
-            }}
-            onClick={calculateBingo}
-            disabled={bingoCalcLoading || !bingoWindDone || bingoPairs.length === 0}
-          >
-            {bingoCalcLoading ? 'CALCULATING...' : 'CALCULATE BINGO'}
-          </button>
-
-          {bingoResults.length > 0 && (
-            <div style={{ overflowX: 'auto', marginTop: 16 }}>
-              <table style={s.table}>
-                <thead>
-                  <tr>
-                    <th style={{ ...s.td, borderBottom: '2px solid #555', textAlign: 'left', paddingBottom: 8 }}>PAIR</th>
-                    <th style={{ ...s.tdCenter, borderBottom: '2px solid #555', paddingBottom: 8 }}>DIST (NM)</th>
-                    {windScenarios.map(scenario => (
-                      <th key={scenario.id} colSpan={2} style={{ ...s.tdCenter, borderBottom: '2px solid #555', paddingBottom: 8 }}>
-                        {getWindLabel(scenario)}
-                      </th>
-                    ))}
-                  </tr>
-                  <tr>
-                    <th style={{ ...s.td, borderBottom: '1px solid #444' }}></th>
-                    <th style={{ ...s.tdCenter, borderBottom: '1px solid #444' }}></th>
-                    {windScenarios.map(scenario => (
-                      <React.Fragment key={scenario.id}>
-                        <th style={{ ...s.tdCenter, borderBottom: '1px solid #444', fontSize: 10, color: '#999' }}>TIME</th>
-                        <th style={{ ...s.tdCenter, borderBottom: '1px solid #444', fontSize: 10, color: '#999' }}>FUEL</th>
-                      </React.Fragment>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {bingoResults.map(result => {
-                    const pair = bingoPairs.find(p => p.id === result.pairId)
-                    if (!pair) return null
-
-                    const pairLabel = getPairLabel(pair)
-                    const firstCell = result.cells[0]
-                    const dist = firstCell?.distance_nm ?? 0
-
-                    return (
-                      <tr key={result.pairId}>
-                        <td style={s.td}>{pairLabel}</td>
-                        <td style={s.tdCenter}>{dist.toFixed(1)}</td>
-                        {result.cells.map(cell => {
-                          const srcWptResult = windResults.find(wr => wr.scenarioId === cell.scenarioId)?.data?.waypoints[pair.sourceWptIdx]
-                          const srcFuel = srcWptResult?.fuel_remaining_lbs ?? 0
-
-                          return (
-                            <React.Fragment key={cell.scenarioId}>
-                              <td style={s.tdCenter}>
-                                {cell.status === 'done' && cell.time_min !== null
-                                  ? `${Math.floor(cell.time_min)}:${String(Math.round((cell.time_min % 1) * 60)).padStart(2, '0')}`
-                                  : '–'}
-                              </td>
-                              <td style={cell.fuel_needed_lbs > srcFuel ? s.tdWarn : s.tdCenter}>
-                                {cell.status === 'done' && cell.fuel_needed_lbs !== null ? Math.round(cell.fuel_needed_lbs) : '–'}
-                              </td>
-                            </React.Fragment>
-                          )
-                        })}
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-          )}
-        </div>
-      </div>
+          {/* Tab Content */}
+          <div style={{ flex: 1, overflowY: 'auto', padding: '8px 12px' }}>
+            {activeTab === 'config' && <div>Configuration</div>}
+            {activeTab.startsWith('wind-') && <div>Wind results</div>}
+            {activeTab === 'bingo' && <div>Bingo results</div>}
+          </div>
+        </>
+      )}
     </div>
   )
 }
