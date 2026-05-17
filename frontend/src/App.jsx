@@ -8,10 +8,12 @@ import RoutePanel, { ROUTE_COLORS } from './components/RoutePanel.jsx'
 import WcaPanel from './components/WcaPanel.jsx'
 import EasterEggGame from './components/EasterEggGame.jsx'
 import UtmEntryModal from './components/UtmEntryModal.jsx'
+import NotesPanel from './components/NotesPanel.jsx'
 import { calculateFlightPlan, fetchElevation, utmToLatLon, cspFuelFromOge, cspFuelFromIge, suggestClimbSpeed } from './api.js'
 import { exportFlightTable, exportExcel, importFromExcel, utmToLatLon as utmToLatLonJS } from './exportTable.js'
 import * as XLSX from 'xlsx'
 import { useTheme } from './theme.jsx'
+import { useExplanations } from './useExplanations.js'
 
 const DEFAULT_WPT = { name: '', lat: '', lon: '', alt_ft: '', surface_alt_ft: '', airspeed_kts: '120', oat_c: '25', oat_auto: true, atf: '1.0', hold_type: null, hold_min: '5', hold_speed_kts: '80', spare_pct: '0', wind_dir: '0', wind_speed_kts: '0', tot_time: '', tot_mode: 'daytime' }
 const computeOat  = (alt_ft, slTemp) => {
@@ -70,6 +72,8 @@ const SETTINGS_DEFAULTS = {
   wcaAdvisoryCruiseTorque:         92.0,
   wcaAdvisoryFuelEnabled:          false,
   wcaAdvisoryMinFuel:              550,
+  // Joker fuel — minimum fuel reserve for mission planning
+  jokerFuel:                       350,
 }
 
 const ROUTE_CONFIG_DEFAULTS = {
@@ -125,6 +129,7 @@ function SideSep({ t }) {
 
 export default function App() {
   const { t, themeName, toggle } = useTheme()
+  const { get } = useExplanations()
   const s0 = loadSaved()
 
   const [projectName, setProjectName]  = useState(s0.projectName    ?? 'Ilana')
@@ -217,6 +222,8 @@ export default function App() {
   const [targetWptIdx, setTargetWptIdx] = useState(null)
   const [selectedWpt,  setSelectedWpt]  = useState(null)
   const [selectedLeg,  setSelectedLeg]  = useState(null)
+  const [selectedWpts, setSelectedWpts] = useState(new Set())
+  const [undoStack, setUndoStack] = useState([])
 
   // ── Wind preset (UI toggle only) ───────────────────────────────────────────
   const [windExpanded,    setWindExpanded]    = useState(false)
@@ -258,6 +265,9 @@ export default function App() {
   const [suggestLoading, setSuggestLoading] = useState(false)
   const [suggestResult,  setSuggestResult]  = useState(null)  // null | { found, suggested_tas_kts, original_tas_kts, message, wptIdx }
   const [showUtmModal,    setShowUtmModal]    = useState(false)
+  const [showNotes,          setShowNotes]          = useState(false)
+  const [bingoTargetMode,    setBingoTargetMode]    = useState(false)
+  const [pendingBingoTarget, setPendingBingoTarget] = useState(null)
   const [fileImportError,  setFileImportError]  = useState(null)
   const [fileImportStatus, setFileImportStatus] = useState(null)   // null | string
   const fileImportRef = useRef(null)
@@ -319,6 +329,8 @@ export default function App() {
   const hfCount  = countStore(stationsConfig, 'hf_4rnd')
   const eoCount  = countStore(stationsConfig, 'eo_launcher')
   const rktCount = countStore(stationsConfig, 'rocket_m261')
+  const eftCount = countStore(stationsConfig, 'eft_230')
+  const maxFuel  = 2500 + (eftCount * 1500)  // 2500 internal + 1500 per EFT
 
   const prevCountsRef = useRef({})
 
@@ -395,8 +407,34 @@ export default function App() {
   const grossWt    = configuredEmptyWt + (parseFloat(initFuel) || 0)
   const gwColor    = grossWt > 21000 ? t.warn : t.accent
 
+  // ── File save helper with folder picker (File System Access API) ──────────
+  const saveFileWithDialog = async (blob, filename, mimeType) => {
+    // Try modern File System Access API (Chrome, Edge, Brave)
+    if (window.showSaveFilePicker) {
+      try {
+        const handle = await window.showSaveFilePicker({
+          suggestedName: filename,
+          types: [{ description: 'File', accept: { [mimeType]: [filename.split('.').pop() === 'json' ? '.json' : '.xlsx'] } }],
+        })
+        const writable = await handle.createWritable()
+        await writable.write(blob)
+        await writable.close()
+        return
+      } catch (err) {
+        if (err.name === 'AbortError') return  // User cancelled
+        console.error('Save dialog error:', err)
+        // Fall through to legacy method
+      }
+    }
+
+    // Fallback: download to Downloads folder (all browsers)
+    const url = URL.createObjectURL(blob)
+    Object.assign(document.createElement('a'), { href: url, download: filename }).click()
+    URL.revokeObjectURL(url)
+  }
+
   // ── Mission export / import ────────────────────────────────────────────────
-  const exportMission = () => {
+  const exportMission = async () => {
     const mission = {
       project_name: projectName,
       routes: routes.map(r => ({
@@ -417,9 +455,7 @@ export default function App() {
     }
     const safeName = projectName.trim().replace(/[^a-zA-Z0-9_\-\u0020\u0021-\u007E]/g, '_') || 'mission'
     const blob = new Blob([JSON.stringify(mission, null, 2)], { type: 'application/json' })
-    const url  = URL.createObjectURL(blob)
-    Object.assign(document.createElement('a'), { href: url, download: `${safeName}.json` }).click()
-    URL.revokeObjectURL(url)
+    await saveFileWithDialog(blob, `${safeName}.json`, 'application/json')
   }
 
   const importMission = (e) => {
@@ -627,7 +663,37 @@ export default function App() {
     } catch (e) { setError(`Hover power lookup failed (IGE) — ${e.message}`) }
   }
 
+  // ── Undo/Redo system for waypoint and route actions ──────────────────────
+  const saveToUndoStack = () => {
+    setUndoStack(stack => {
+      const newStack = [...stack, { routes }]
+      return newStack.slice(-10)
+    })
+  }
+
+  const performUndo = () => {
+    if (undoStack.length === 0) return
+    setUndoStack(stack => {
+      const newStack = [...stack]
+      const previousState = newStack.pop()
+      setRoutes(previousState.routes)
+      return newStack
+    })
+  }
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+        e.preventDefault()
+        performUndo()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [undoStack])
+
   const addWaypoint = () => {
+    saveToUndoStack()
     setWaypoints(w => {
       const last = w[w.length - 1]
       const base = last
@@ -867,18 +933,21 @@ export default function App() {
   }
 
   const removeWaypoint = (idx) => {
+    saveToUndoStack()
     setWaypoints(w => w.filter((_, i) => i !== idx))
     if (targetWptIdx === idx) setTargetWptIdx(null)
     else if (targetWptIdx > idx) setTargetWptIdx(t => t - 1)
   }
 
   const reverseWaypoints = () => {
+    saveToUndoStack()
     setWaypoints(w => [...w].reverse())
     setResults(null); setStopAlert(null)
     setActiveWpt(null)
   }
 
   const reorderWaypoints = (fromIdx, toIdx) => {
+    saveToUndoStack()
     setWaypoints(w => {
       const arr = [...w]
       const [moved] = arr.splice(fromIdx, 1)
@@ -904,6 +973,7 @@ export default function App() {
 
   const addRoute = () => {
     if (routes.length >= 10) return
+    saveToUndoStack()
     const id = routeIdRef.current++
     const color = ROUTE_COLORS[id % ROUTE_COLORS.length]
     const r = {
@@ -919,6 +989,7 @@ export default function App() {
 
   const duplicateRoute = (id) => {
     if (routes.length >= 10) return
+    saveToUndoStack()
     const src = routes.find(r => r.id === id); if (!src) return
     const newId = routeIdRef.current++
     const color = ROUTE_COLORS[newId % ROUTE_COLORS.length]
@@ -932,22 +1003,32 @@ export default function App() {
 
   const deleteRoute = (id) => {
     if (routes.length <= 1) return
+    saveToUndoStack()
     const next = routes.filter(r => r.id !== id)
     setRoutes(next)
     if (activeRouteId === id) { setActiveRouteId(next[0].id); setActiveWpt(null); setTargetWptIdx(null) }
   }
 
-  const renameRoute     = (id, name) => updateRoute(id, r => ({ ...r, name: name || r.name }))
-  const reorderRoutes   = (fromId, toId) => setRoutes(rs => {
-    const arr = [...rs]
-    const fromIdx = arr.findIndex(r => r.id === fromId)
-    const toIdx   = arr.findIndex(r => r.id === toId)
-    if (fromIdx === -1 || toIdx === -1) return rs
-    const [moved] = arr.splice(fromIdx, 1)
-    arr.splice(toIdx, 0, moved)
-    return arr
-  })
-  const toggleRouteVis  = (id)       => updateRoute(id, r => ({ ...r, visible: !r.visible }))
+  const renameRoute     = (id, name) => {
+    saveToUndoStack()
+    updateRoute(id, r => ({ ...r, name: name || r.name }))
+  }
+  const reorderRoutes   = (fromId, toId) => {
+    saveToUndoStack()
+    setRoutes(rs => {
+      const arr = [...rs]
+      const fromIdx = arr.findIndex(r => r.id === fromId)
+      const toIdx   = arr.findIndex(r => r.id === toId)
+      if (fromIdx === -1 || toIdx === -1) return rs
+      const [moved] = arr.splice(fromIdx, 1)
+      arr.splice(toIdx, 0, moved)
+      return arr
+    })
+  }
+  const toggleRouteVis  = (id)       => {
+    saveToUndoStack()
+    updateRoute(id, r => ({ ...r, visible: !r.visible }))
+  }
   const showAllRoutes   = ()          => setRoutes(rs => rs.map(r => ({ ...r, visible: true })))
   const hideAllRoutes   = ()          => setRoutes(rs => rs.map(r => ({ ...r, visible: false })))
 
@@ -993,7 +1074,8 @@ export default function App() {
     } catch (err) { setError(`Could not read Excel file — make sure it's a valid Galaxy export (.xlsx/.xls): ${err.message}`) }
   }
 
-  const updateWaypoint = (idx, field, value) =>
+  const updateWaypoint = (idx, field, value) => {
+    saveToUndoStack()
     setWaypoints(w => w.map((wp, i) => {
       // spare_pct propagates forward from idx to end of route (VB6 txtpntSPARE_Change)
       if (field === 'spare_pct') return i >= idx ? { ...wp, spare_pct: value } : wp
@@ -1005,6 +1087,7 @@ export default function App() {
         updated.oat_auto = false
       return updated
     }))
+  }
 
   const applyMapMove = async (wptIdx, lat, lon) => {
     setWaypoints(w => w.map((p, i) => i === wptIdx
@@ -1028,6 +1111,11 @@ export default function App() {
   }
 
   const onMapClick = useCallback(async (lat, lon) => {
+    if (bingoTargetMode) {
+      setPendingBingoTarget({ lat, lon })
+      setBingoTargetMode(false)
+      return
+    }
     if (mapAddMode) {
       // Add new waypoint at clicked position
       const offset = parseInt(aglOffset) || 1000
@@ -1062,7 +1150,7 @@ export default function App() {
     }
     if (activeWpt === null) return
     setPendingMapMove({ lat, lon, wptIdx: activeWpt })
-  }, [mapAddMode, activeWpt, aglOffset, altMode, results])   // eslint-disable-line
+  }, [bingoTargetMode, mapAddMode, activeWpt, aglOffset, altMode, results])   // eslint-disable-line
 
   const handleCalculate = async () => {
     setError(null); setResults(null); setStopAlert(null); setSuggestResult(null); setLoading(true)
@@ -1086,6 +1174,31 @@ export default function App() {
       }
     }
     if (!initFuel || isNaN(parseFloat(initFuel))) { setError('Initial fuel is missing — enter the starting fuel load (lbs) in the weight panel before calculating'); setLoading(false); return }
+
+    const fuelNum = parseFloat(initFuel)
+    const eftCountCalc = countStore(stationsConfig, 'eft_230')
+    const maxFuelCalc = 2500 + (eftCountCalc * 1500)
+    if (fuelNum < 0 || fuelNum > maxFuelCalc) { setError(`Initial fuel invalid — tank capacity max ${maxFuelCalc} lbs (internal 2500 + ${eftCountCalc} EFT ×1500)`); setLoading(false); return }
+
+    // Validate missile/rocket loads against launcher counts
+    const hfMax = hfCount * 4
+    const eoMax = eoCount * 4
+    const rktMax = 9
+
+    const hfNum = parseFloat(hfMissiles)
+    const eoNum = parseFloat(eoMissiles)
+    const rktNum = parseFloat(rocketRounds)
+
+    if (hfCount > 0 && (isNaN(hfNum) || hfNum < 0 || hfNum > hfMax)) {
+      setError(`AGM-114: invalid count — ${hfCount} launcher${hfCount > 1 ? 's' : ''} max ${hfMax} missiles`); setLoading(false); return
+    }
+    if (eoCount > 0 && (isNaN(eoNum) || eoNum < 0 || eoNum > eoMax)) {
+      setError(`EO launcher: invalid count — ${eoCount} launcher${eoCount > 1 ? 's' : ''} max ${eoMax} missiles`); setLoading(false); return
+    }
+    if (rktCount > 0 && (isNaN(rktNum) || rktNum < 0 || rktNum > rktMax)) {
+      setError(`Rockets: invalid count — max ${rktMax} rockets`); setLoading(false); return
+    }
+
     try {
       const data = await calculateFlightPlan({
         variant,
@@ -1770,10 +1883,10 @@ data/srtm.tif
           />
         )
 
-        const Row = ({ label, k, step, unit }) => (
+        const Row = ({ label, k, step, unit, explanationKey }) => (
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                         padding: '6px 0', borderBottom: `1px solid ${t.border0}` }}>
-            <span style={{ fontSize: 10, color: isModified(k) ? t.caution : t.text2 }}>
+            <span title={explanationKey ? get(explanationKey) : ''} style={{ fontSize: 10, color: isModified(k) ? t.caution : t.text2, cursor: explanationKey ? 'help' : 'default' }}>
               {label}{isModified(k) ? ' ●' : ''}
             </span>
             <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
@@ -1785,7 +1898,7 @@ data/srtm.tif
 
         const TABS = [
           { id: 'drag',      label: 'DRAG / ATF',  keys: ['fcrDeltaF', 'compodDeltaF', 'dfNoWeapons','dfEftIb','dfEftOb','dfHfIb','dfHfOb','dfEoIb','dfEoOb','dfRktIb','dfRktOb'] },
-          { id: 'weights',   label: 'WEIGHTS',      keys: ['crewWtDefault', 'chaffFlareWtDefault', 'fcrWeight', 'compodWeight'] },
+          { id: 'weights',   label: 'WEIGHTS',      keys: ['crewWtDefault', 'chaffFlareWtDefault', 'fcrWeight', 'compodWeight', 'jokerFuel'] },
           { id: 'armament',  label: 'ARMAMENT',     keys: ['hellfireWt', 'eoMissileWt', 'rocketRoundWt', 'gunRoundWt'] },
           { id: 'hardware',  label: 'HARDWARE',     keys: ['hwEft230', 'hwHf4rnd', 'hwEoLauncher', 'hwRocketM261'] },
         ]
@@ -1823,8 +1936,8 @@ data/srtm.tif
                 {/* Tab content */}
                 <div style={{ minHeight: 180 }}>
                   {settingsTab === 'drag' && <>
-                    <Row label="FCR ΔF (when OFF)"   k="fcrDeltaF"    step={0.01} unit="ΔF" />
-                    <Row label="COMPOD ΔF (when ON)" k="compodDeltaF" step={0.01} unit="ΔF" />
+                    <Row label="FCR ΔF (when OFF)"   k="fcrDeltaF"    step={0.01} unit="ΔF" explanationKey="fcrDeltaF" />
+                    <Row label="COMPOD ΔF (when ON)" k="compodDeltaF" step={0.01} unit="ΔF" explanationKey="compodDeltaF" />
                     <div style={{ marginTop: 14, marginBottom: 4, borderTop: `1px solid ${t.border0}`, paddingTop: 10 }}>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: '0 8px', alignItems: 'center', marginBottom: 4 }}>
                         <span style={{ fontSize: 9, color: t.text3, letterSpacing: 1 }}>STORE ΔF (sq.ft)</span>
@@ -1839,7 +1952,7 @@ data/srtm.tif
                         ['Rocket ×19',            'dfRktIb',     'dfRktOb'],
                       ].map(([label, kIb, kOb]) => (
                         <div key={kIb} style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: '0 8px', alignItems: 'center', padding: '5px 0', borderBottom: `1px solid ${t.border0}` }}>
-                          <span style={{ fontSize: 10, color: (isModified(kIb) || (kOb && isModified(kOb))) ? t.caution : t.text2 }}>
+                          <span style={{ fontSize: 10, color: (isModified(kIb) || (kOb && isModified(kOb))) ? t.caution : t.text2 }} title={get(kIb)}>
                             {label}{(isModified(kIb) || (kOb && isModified(kOb))) ? ' ●' : ''}
                           </span>
                           {numInput(kIb, 0.001)}
@@ -1852,22 +1965,23 @@ data/srtm.tif
                     </div>
                   </>}
                   {settingsTab === 'weights' && <>
-                    <Row label="Crew"           k="crewWtDefault"       step={1} unit="lbs" />
-                    <Row label="Chaff & Flare"  k="chaffFlareWtDefault" step={1} unit="lbs" />
-                    <Row label="FCR system"     k="fcrWeight"           step={1} unit="lbs" />
-                    <Row label="COMPOD pod"     k="compodWeight"        step={1} unit="lbs" />
+                    <Row label="Crew"           k="crewWtDefault"       step={1} unit="lbs" explanationKey="crewWtDefault" />
+                    <Row label="Chaff & Flare"  k="chaffFlareWtDefault" step={1} unit="lbs" explanationKey="chaffFlareWtDefault" />
+                    <Row label="FCR system"     k="fcrWeight"           step={1} unit="lbs" explanationKey="fcrWeight" />
+                    <Row label="COMPOD pod"     k="compodWeight"        step={1} unit="lbs" explanationKey="compodWeight" />
+                    <Row label="Joker fuel"     k="jokerFuel"           step={1} unit="lbs" explanationKey="jokerFuel" />
                   </>}
                   {settingsTab === 'armament' && <>
-                    <Row label="AGM-114 Hellfire"  k="hellfireWt"    step={1}    unit="lbs/msle" />
-                    <Row label="EO missile"        k="eoMissileWt"   step={1}    unit="lbs/msle" />
-                    <Row label="Rocket round"      k="rocketRoundWt" step={1}    unit="lbs/rnd"  />
-                    <Row label="30mm gun round"    k="gunRoundWt"    step={0.01} unit="lbs/rnd"  />
+                    <Row label="AGM-114 Hellfire"  k="hellfireWt"    step={1}    unit="lbs/msle" explanationKey="hellfireWt" />
+                    <Row label="EO missile"        k="eoMissileWt"   step={1}    unit="lbs/msle" explanationKey="eoMissileWt" />
+                    <Row label="Rocket round"      k="rocketRoundWt" step={1}    unit="lbs/rnd"  explanationKey="rocketRoundWt" />
+                    <Row label="30mm gun round"    k="gunRoundWt"    step={0.01} unit="lbs/rnd"  explanationKey="gunRoundWt" />
                   </>}
                   {settingsTab === 'hardware' && <>
-                    <Row label="EFT-230 pylon"           k="hwEft230"     step={1} unit="lbs" />
-                    <Row label="HF-4RND launcher"        k="hwHf4rnd"     step={1} unit="lbs" />
-                    <Row label="EO launcher"             k="hwEoLauncher" step={1} unit="lbs" />
-                    <Row label='Rocket "Pigeon" launcher' k="hwRocketM261" step={1} unit="lbs" />
+                    <Row label="EFT-230 pylon"           k="hwEft230"     step={1} unit="lbs" explanationKey="hwEft230" />
+                    <Row label="HF-4RND launcher"        k="hwHf4rnd"     step={1} unit="lbs" explanationKey="hwHf4rnd" />
+                    <Row label="EO launcher"             k="hwEoLauncher" step={1} unit="lbs" explanationKey="hwEoLauncher" />
+                    <Row label='Rocket "Pigeon" launcher' k="hwRocketM261" step={1} unit="lbs" explanationKey="hwRocketM261" />
                   </>}
                 </div>
 
@@ -1936,6 +2050,20 @@ data/srtm.tif
           defaultSpeed={120}
           defaultOat={25}
           defaultOatAuto={true}
+        />
+      )}
+
+      {/* ── Notes panel — Wind analysis & Bingo calculator ── */}
+      {showNotes && (
+        <NotesPanel
+          routes={routes}
+          settings={settings}
+          bingoTargetMode={bingoTargetMode}
+          onRequestMapClick={() => setBingoTargetMode(true)}
+          onCancelMapClick={() => setBingoTargetMode(false)}
+          pendingBingoTarget={pendingBingoTarget}
+          onBingoTargetConsumed={() => setPendingBingoTarget(null)}
+          onClose={() => { setShowNotes(false); setBingoTargetMode(false); setPendingBingoTarget(null) }}
         />
       )}
 
@@ -2088,10 +2216,10 @@ data/srtm.tif
             enableKey: 'wcaWarningsEnabled', noDisable: true,
             desc: 'Critical safety violations — always active',
             params: [
-              { label: 'ΔTorque limit', k: 'wcaWarnDeltaTorque',  step: 0.5,  unit: '%'  },
-              { label: 'Cruise torque',     k: 'wcaWarnCruiseTorque', step: 0.5,  unit: '%'  },
-              { label: 'Fuel minimum',      k: 'wcaWarnMinFuel',      step: 50,   unit: 'lbs'},
-              { label: 'Max gross weight',  k: 'wcaWarnMaxGw',        step: 100,  unit: 'lbs'},
+              { label: 'ΔTorque limit', k: 'wcaWarnDeltaTorque',  step: 0.5,  unit: '%',   explanationKey: 'DELTA_TORQUE' },
+              { label: 'Cruise torque',     k: 'wcaWarnCruiseTorque', step: 0.5,  unit: '%',   explanationKey: 'CRUISE_TORQUE' },
+              { label: 'Fuel minimum',      k: 'wcaWarnMinFuel',      step: 50,   unit: 'lbs', explanationKey: 'FUEL_MINIMUM' },
+              { label: 'Max gross weight',  k: 'wcaWarnMaxGw',        step: 100,  unit: 'lbs', explanationKey: 'MAX_GROSS_WEIGHT' },
             ],
           },
           {
@@ -2099,10 +2227,10 @@ data/srtm.tif
             noDisable: true,
             desc: 'Operational limit violations — yellow indicator',
             params: [
-              { label: 'ΔTorque limit',      k: 'wcaCautionDeltaTorque',  step: 0.5, unit: '%', enableKey: 'wcaCautionDeltaTorqueEnabled' },
-              { label: 'Cruise torque',       k: 'wcaCautionCruiseTorque', step: 0.5, unit: '%', enableKey: 'wcaCautionCruiseTorqueEnabled' },
+              { label: 'ΔTorque limit',      k: 'wcaCautionDeltaTorque',  step: 0.5, unit: '%', enableKey: 'wcaCautionDeltaTorqueEnabled', explanationKey: 'DELTA_TORQUE' },
+              { label: 'Cruise torque',       k: 'wcaCautionCruiseTorque', step: 0.5, unit: '%', enableKey: 'wcaCautionCruiseTorqueEnabled', explanationKey: 'CRUISE_TORQUE' },
               { label: 'Terrain margin', k: 'wcaCautionTerrainMargin', step: 50, unit: 'ft', enableKey: 'wcaCautionTerrainEnabled',
-                desc: 'Alert if terrain exceeds leg path by this margin' },
+                desc: 'Alert if terrain exceeds leg path by this margin', explanationKey: 'TERRAIN_MARGIN' },
             ],
           },
           {
@@ -2110,9 +2238,9 @@ data/srtm.tif
             noDisable: true,
             desc: 'Informational — blue indicator, non-blocking',
             params: [
-              { label: 'ΔTorque limit', k: 'wcaAdvisoryDeltaTorque',  step: 0.5, unit: '%',   enableKey: 'wcaAdvisoryDeltaTorqueEnabled' },
-              { label: 'Cruise torque', k: 'wcaAdvisoryCruiseTorque', step: 0.5, unit: '%',   enableKey: 'wcaAdvisoryCruiseTorqueEnabled' },
-              { label: 'Fuel minimum',  k: 'wcaAdvisoryMinFuel',      step: 50,  unit: 'lbs', enableKey: 'wcaAdvisoryFuelEnabled' },
+              { label: 'ΔTorque limit', k: 'wcaAdvisoryDeltaTorque',  step: 0.5, unit: '%',   enableKey: 'wcaAdvisoryDeltaTorqueEnabled', explanationKey: 'DELTA_TORQUE' },
+              { label: 'Cruise torque', k: 'wcaAdvisoryCruiseTorque', step: 0.5, unit: '%',   enableKey: 'wcaAdvisoryCruiseTorqueEnabled', explanationKey: 'CRUISE_TORQUE' },
+              { label: 'Fuel minimum',  k: 'wcaAdvisoryMinFuel',      step: 50,  unit: 'lbs', enableKey: 'wcaAdvisoryFuelEnabled', explanationKey: 'FUEL_MINIMUM' },
             ],
           },
         ]
@@ -2204,7 +2332,7 @@ data/srtm.tif
 
                 {/* Parameter rows */}
                 <div style={{ background: t.bg0, padding: '4px 16px 8px' }}>
-                  {params.map(({ label, k, step, unit, enableKey: rowEnableKey, noValue, desc: rowDesc }) => {
+                  {params.map(({ label, k, step, unit, enableKey: rowEnableKey, noValue, desc: rowDesc, explanationKey }) => {
                     const rowEnabled = rowEnableKey ? pendingWca[rowEnableKey] : true
                     const modified   = (k && pendingWca[k] !== D[k]) || (rowEnableKey && pendingWca[rowEnableKey] !== D[rowEnableKey])
                     return (
@@ -2224,7 +2352,7 @@ data/srtm.tif
                             }}>{rowEnabled ? 'ON' : 'OFF'}</button>
                           )}
                           <div>
-                            <span style={{ fontSize: 10, color: modified ? color : t.text2 }}>
+                            <span title={explanationKey ? get(explanationKey) : ''} style={{ fontSize: 10, color: modified ? color : t.text2, cursor: explanationKey ? 'help' : 'default' }}>
                               {label}{modified ? ' ●' : ''}
                             </span>
                             {rowDesc && <div style={{ fontSize: 8, color: t.text3, marginTop: 1 }}>{rowDesc}</div>}
@@ -2343,11 +2471,12 @@ data/srtm.tif
               <button
                 disabled={exportRouteIds.size === 0}
                 title={exportRouteIds.size === 0 ? 'Select at least one route' : ''}
-                onClick={() => {
+                onClick={async () => {
                   const selected = routes.filter(r => exportRouteIds.has(r.id) && r.results)
                   if (selected.length === 0) return
                   if (showExportModal === 'excel') {
-                    exportExcel(selected.map(r => ({ results: r.results, routeName: r.name, waypoints: r.waypoints, ...routeExportProps(r) })), projectName)
+                    const result = exportExcel(selected.map(r => ({ results: r.results, routeName: r.name, waypoints: r.waypoints, ...routeExportProps(r) })), projectName)
+                    await saveFileWithDialog(result.blob, result.filename, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
                   } else {
                     exportFlightTable(selected.map(r => { const ep = routeExportProps(r); return { results: r.results, routeName: r.name, variant: ep.variant, emptyWt: ep.emptyWt, initFuel: ep.initFuel, waypoints: r.waypoints } }))
                   }
@@ -2441,7 +2570,7 @@ data/srtm.tif
         <SideSep t={t} />
 
         {/* Info group */}
-        <SideBtn icon="✎" label="NOTES" tip="Notes"          onClick={() => {}} t={t} />
+        <SideBtn icon="✎" label="NOTES" tip="Notes"          onClick={() => setShowNotes(true)} t={t} />
         <SideBtn icon="?" label="HELP"  tip="Help"           onClick={() => setShowHelp(true)} t={t} />
         <SideBtn icon="ℹ" label="ABOUT" tip="About ILANA"   onClick={() => setShowAbout(true)} t={t} />
 
@@ -2449,8 +2578,8 @@ data/srtm.tif
         <div style={{ flex: 1 }} />
 
         <SideSep t={t} />
-        <SideBtn icon="◑" label={themeName === 'green' ? 'BLUE' : 'GREEN'}
-          tip={`Switch to ${themeName === 'green' ? 'Dark Blue' : 'Dark Green'}`}
+        <SideBtn icon="◑" label={themeName === 'blue' ? 'GREEN' : themeName === 'green' ? 'LIGHT' : 'BLUE'}
+          tip={`Switch to ${themeName === 'blue' ? 'Dark Green' : themeName === 'green' ? 'Light' : 'Dark Blue'}`}
           onClick={toggle} t={t} />
 
         <input ref={importRef}    type="file" accept=".json"        onChange={importMission}    style={{ display: 'none' }} />
@@ -2558,7 +2687,10 @@ data/srtm.tif
                 <input value={otherWt} onChange={e => setOtherWt(e.target.value)} placeholder="0" style={validStyle(otherWt, 0, 1000)} />
               </Row>
               <Row label="INIT FUEL (LBS)" t={t}>
-                <input value={initFuel} onChange={e => setInitFuel(e.target.value)} placeholder="2500" style={validStyle(initFuel, 0, 8500)} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <input value={initFuel} onChange={e => setInitFuel(e.target.value)} placeholder="2500" style={validStyle(initFuel, 0, maxFuel)} />
+                  <span style={{ fontSize: 9, color: (() => { const num = parseFloat(initFuel); return initFuel !== '' && !isNaN(num) && (num < 0 || num > maxFuel) ? t.warn : t.text3 })() }}>max {maxFuel}</span>
+                </div>
               </Row>
 
               {/* Weight breakdown */}
@@ -2612,7 +2744,7 @@ data/srtm.tif
             <div style={{ padding: '8px 16px', background: t.bg3 }}>
               <div style={{ display: 'flex', gap: 4, marginBottom: 8 }}>
                 {['AGL', 'MSL'].map(mode => (
-                  <button key={mode} onClick={() => setAltMode(mode)} style={{
+                  <button key={mode} onClick={() => setAltMode(mode)} title={get(mode)} style={{
                     flex: 1, padding: '4px 0', fontSize: 10, fontWeight: 700,
                     letterSpacing: 1, borderRadius: 3, cursor: 'pointer', fontFamily: t.font,
                     background: altMode === mode ? t.bg4 : t.bg2,
@@ -2655,13 +2787,13 @@ data/srtm.tif
               <div style={{ fontSize: 9, color: t.text3, letterSpacing: 2, marginBottom: 6 }}>WIND MODE</div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4, marginBottom: 10 }}>
                 {[
-                  ['fixed', 'FIXED', 'Set direction & speed for all waypoints'],
-                  ['nose',  'HEADWIND', 'Wind from nose — auto direction per leg'],
-                  ['back',  'TAILWIND', 'Wind from tail — auto direction per leg'],
-                  ['right', 'RIGHT CROSS', 'Wind from right — auto direction per leg'],
-                  ['left',  'LEFT CROSS',  'Wind from left — auto direction per leg'],
-                ].map(([mode, label, hint]) => (
-                  <button key={mode} onClick={() => setWindPreset(mode)} title={hint} style={{
+                  ['fixed', 'FIXED', 'FIXED'],
+                  ['nose',  'HEADWIND', 'HEADWIND'],
+                  ['back',  'TAILWIND', 'TAILWIND'],
+                  ['right', 'RIGHT CROSS', 'RIGHT_CROSS'],
+                  ['left',  'LEFT CROSS',  'LEFT_CROSS'],
+                ].map(([mode, label, explanationKey]) => (
+                  <button key={mode} onClick={() => setWindPreset(mode)} title={get(explanationKey)} style={{
                     padding: '5px 4px', fontSize: 10, fontWeight: 700, letterSpacing: 0.5,
                     borderRadius: 3, cursor: 'pointer', fontFamily: t.font,
                     background: windPreset === mode ? t.bg5 : t.bg2,
@@ -2770,6 +2902,8 @@ data/srtm.tif
                 onCspFuelChange={setCspFuel}
                 onCspAutoOge={val => handleCspAutoOge(val)}
                 onCspAutoIge={val => handleCspAutoIge(val)}
+                selectedWpts={selectedWpts}
+                onSetSelectedWpts={setSelectedWpts}
               />
             </div>
           )}
@@ -2829,6 +2963,7 @@ data/srtm.tif
                      setTimeout(() => document.querySelector(`[data-wpt-idx="${i}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50)
                    }}
                    highlightedWptIdx={selectedWpt} highlightedLeg={selectedLeg}
+                   selectedWpts={selectedWpts}
                    sizeKey={`${leftFolded}-${leftWidth}-${tableFolded}-${tableHeight}-${rightFolded}`}
                    bgRoutes={bgRoutes}
                    activeRouteColor={activeRoute.color}
@@ -2844,6 +2979,14 @@ data/srtm.tif
               fontFamily: 'monospace', letterSpacing: 1, cursor: 'pointer', borderRadius: 5,
               background: '#0ea5e9', border: '1.5px solid #38bdf8', color: '#fff',
             }}>✓ DONE — {waypoints.length} WAYPOINT{waypoints.length !== 1 ? 'S' : ''}</button>
+          )}
+
+          {bingoTargetMode && (
+            <button onClick={() => setBingoTargetMode(false)} style={{
+              position:'absolute', bottom:72, left:'50%', transform:'translateX(-50%)',
+              zIndex:1200, padding:'6px 20px', fontSize:10, fontWeight:700,
+              background:'#a855f7', border:'1.5px solid #c084fc', color:'#fff', borderRadius:5,
+            }}>✕ CANCEL — PICKING BINGO TARGET</button>
           )}
 
           {/* ── Map overlay: route name + panel restore buttons ── */}
@@ -2926,9 +3069,10 @@ data/srtm.tif
                     <button onClick={() => setTableFullscreen(f => !f)} style={iconBtnStyle}>
                       {tableFullscreen ? '⊟ EXIT' : '⊞ FULL'}
                     </button>
-                    <button onClick={() => {
+                    <button onClick={async () => {
                       if (routes.length === 1) {
-                        exportExcel([{ results, routeName: activeRoute.name, variant, emptyWt: configuredEmptyWt, initFuel, waypoints, baseEmptyWt, crewWt: settings.crewWtDefault, otherWt, storesHwWt, gunAmmoWt, missilesWt, gunAmmo, hfMissiles, eoMissiles, rocketRounds, stationsConfig, globalAtf, etfEng1, etfEng2 }], projectName)
+                        const result = exportExcel([{ results, routeName: activeRoute.name, variant, emptyWt: configuredEmptyWt, initFuel, waypoints, baseEmptyWt, crewWt: settings.crewWtDefault, otherWt, storesHwWt, gunAmmoWt, missilesWt, gunAmmo, hfMissiles, eoMissiles, rocketRounds, stationsConfig, globalAtf, etfEng1, etfEng2 }], projectName)
+                        await saveFileWithDialog(result.blob, result.filename, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
                       } else {
                         setExportRouteIds(new Set([activeRouteId])); setShowExportModal('excel')
                       }
@@ -2957,7 +3101,7 @@ data/srtm.tif
                     cspWptIdx={cspWptIdx ?? null}
                     onSelectWpt={setSelectedWpt} onSelectLeg={setSelectedLeg}
                     selectedWpt={selectedWpt} selectedLeg={selectedLeg}
-                    alerts={results.alerts ?? []} />
+                    alerts={results.alerts ?? []} jokerFuel={settings.jokerFuel} />
                 </div>
               </div>
             )}

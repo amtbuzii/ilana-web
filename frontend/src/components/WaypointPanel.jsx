@@ -2,50 +2,97 @@
 import { useState, useEffect, useRef } from 'react'
 import { utmToLatLon, fetchElevation, latLonToUtm } from '../api.js'
 import { useTheme } from '../theme.jsx'
+import { useExplanations } from '../useExplanations.js'
 
-export default function WaypointPanel({ waypoints, activeWpt, onSelect, onUpdate, onAdd, onRemove, onReorder, onReverse, aglOffset = 1000, altMode = 'AGL', seaLevelTemp = 25, targetWptIdx, onSetTarget, cspWptIdx, cspFuel, onSetCsp, onCspFuelChange, onCspAutoOge, onCspAutoIge }) {
+export default function WaypointPanel({ waypoints, activeWpt, onSelect, onUpdate, onAdd, onRemove, onReorder, onReverse, aglOffset = 1000, altMode = 'AGL', seaLevelTemp = 25, targetWptIdx, onSetTarget, cspWptIdx, cspFuel, onSetCsp, onCspFuelChange, onCspAutoOge, onCspAutoIge, selectedWpts = new Set(), onSetSelectedWpts = () => {} }) {
   const { t } = useTheme()
+  const { get } = useExplanations()
   // Shared ref so dragging state survives across card re-renders
   const dragFromRef = useRef(null)
 
+  const toggleSelect = (i) => {
+    onSetSelectedWpts(s => { const n = new Set(s); n.has(i) ? n.delete(i) : n.add(i); return n })
+  }
+  const selectAll = () => onSetSelectedWpts(new Set(waypoints.map((_, i) => i)))
+  const clearSelect = () => onSetSelectedWpts(new Set())
+  const deleteSelected = () => {
+    const indicesToDelete = Array.from(selectedWpts).sort((a, b) => b - a)
+    indicesToDelete.forEach(i => onRemove(i))
+    clearSelect()
+  }
+
   return (
     <div style={{ fontFamily: t.font }}>
-      <div style={{
-        padding: '7px 16px',
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, minWidth: 0 }}>
-          <span style={{ fontSize: 12, fontWeight: 700, color: t.text1, letterSpacing: 2, flexShrink: 0 }}>WAYPOINTS</span>
-          <span style={{ fontSize: 10, color: t.text3, letterSpacing: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>CLICK MAP TO ADD</span>
+      <div style={{ borderBottom: `1px solid ${t.border0}`, padding: '8px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+        {/* Left side: All/Cancel/Delete buttons */}
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          {selectedWpts.size > 0 ? (
+            <>
+              <button
+                onClick={() => deleteSelected()}
+                title={get('DELETE')}
+                style={{
+                  padding: '6px 12px', fontSize: 12, background: t.warn,
+                  color: t.bg0, border: `1px solid ${t.warn}`, borderRadius: 4,
+                  cursor: 'pointer', fontFamily: t.font, letterSpacing: 1, fontWeight: 600,
+                }}
+              >🗑 DELETE</button>
+              <button
+                onClick={clearSelect}
+                title={get('CANCEL')}
+                style={{
+                  padding: '6px 12px', fontSize: 12, background: t.bg4,
+                  color: t.text2, border: `1px solid ${t.border0}`, borderRadius: 4,
+                  cursor: 'pointer', fontFamily: t.font, letterSpacing: 1, fontWeight: 600,
+                }}
+              >✕ CANCEL</button>
+            </>
+          ) : (
+            <button
+              onClick={selectAll}
+              title={get('ALL')}
+              style={{
+                padding: '6px 12px', fontSize: 12, background: t.bg4,
+                color: t.text2, border: `1px solid ${t.border0}`, borderRadius: 4,
+                cursor: 'pointer', fontFamily: t.font, letterSpacing: 1, fontWeight: 600,
+              }}
+            >☑ ALL</button>
+          )}
         </div>
-        <div style={{ display: 'flex', gap: 5 }}>
+
+        {/* Right side: REV + ADD */}
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
           <button
             onClick={onReverse}
-            title="Reverse route order"
+            title={get('REV')}
             style={{
-              padding: '3px 10px', fontSize: 11, background: t.bg4,
-              color: t.text2, border: `1px solid ${t.border0}`, borderRadius: 3,
-              cursor: 'pointer', fontFamily: t.font, letterSpacing: 1,
+              padding: '6px 12px', fontSize: 12, background: t.bg4,
+              color: t.text2, border: `1px solid ${t.border0}`, borderRadius: 4,
+              cursor: 'pointer', fontFamily: t.font, letterSpacing: 1, fontWeight: 600,
             }}
           >⇅ REV</button>
+
           <button
             onClick={onAdd}
+            title={get('ADD')}
             style={{
-              padding: '3px 10px', fontSize: 11, background: t.bg4,
-              color: t.accent, border: `1px solid ${t.border1}`, borderRadius: 3,
-              cursor: 'pointer', fontFamily: t.font, letterSpacing: 1,
+              padding: '6px 12px', fontSize: 12, background: t.bg4,
+              color: t.accent, border: `1px solid ${t.border1}`, borderRadius: 4,
+              cursor: 'pointer', fontFamily: t.font, letterSpacing: 1, fontWeight: 600,
             }}
           >+ ADD</button>
         </div>
       </div>
       {waypoints.map((wp, i) => (
         <WaypointCard
-          key={wp.name || i} index={i} wp={wp}
+          key={i} index={i} wp={wp}
           isActive={activeWpt === i}
           isTarget={targetWptIdx === i}
           isCsp={cspWptIdx === i}
+          isSelected={selectedWpts.has(i)}
           cspFuel={cspFuel}
           onSelect={() => onSelect(i === activeWpt ? null : i)}
+          onToggleSelect={() => toggleSelect(i)}
           onUpdate={(field, val) => onUpdate(i, field, val)}
           onRemove={() => onRemove(i)}
           onSetTarget={() => onSetTarget?.(i)}
@@ -64,7 +111,7 @@ export default function WaypointPanel({ waypoints, activeWpt, onSelect, onUpdate
   )
 }
 
-function WaypointCard({ index, wp, isActive, isTarget, isCsp, cspFuel, onSelect, onUpdate, onRemove, onSetTarget, onSetCsp, onCspFuelChange, onCspAutoOge, onCspAutoIge, aglOffset = 1000, altMode = 'AGL', seaLevelTemp = 25, dragFromRef, onReorder }) {
+function WaypointCard({ index, wp, isActive, isTarget, isCsp, isSelected, cspFuel, onSelect, onToggleSelect, onUpdate, onRemove, onSetTarget, onSetCsp, onCspFuelChange, onCspAutoOge, onCspAutoIge, aglOffset = 1000, altMode = 'AGL', seaLevelTemp = 25, dragFromRef, onReorder }) {
   const { t } = useTheme()
   const [utmMode, setUtmMode]           = useState(true)
   const [utm, setUtm]                   = useState({ zone: '36', easting: '', northingPfx: '', northingRest: '' })
@@ -231,15 +278,22 @@ function WaypointCard({ index, wp, isActive, isTarget, isCsp, cspFuel, onSelect,
       onDragEnd={() => { setIsDragOver(false); dragFromRef.current = null }}
       style={{
         margin: '3px 8px', borderRadius: 4,
-        border: `1px solid ${isDragOver ? t.accent : isActive ? t.border1 : t.border0}`,
-        background: isDragOver ? t.bg4 : isActive ? t.bg4 : t.bg2,
+        border: `1px solid ${isSelected ? t.accent : isDragOver ? t.accent : isActive ? t.border1 : t.border0}`,
+        background: isSelected ? t.accent + '11' : isDragOver ? t.bg4 : isActive ? t.bg4 : t.bg2,
         overflow: 'hidden',
         opacity: isDragOver ? 0.85 : 1,
       }}
     >
       {/* Card header — always visible */}
       <div onClick={onSelect} style={{ padding: '7px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={e => { e.stopPropagation(); onToggleSelect() }}
+            onClick={e => e.stopPropagation()}
+            style={{ cursor: 'pointer', width: 16, height: 16 }}
+          />
           <span
             onMouseDown={e => e.stopPropagation()}
             style={{ color: t.text3, fontSize: 13, cursor: 'grab', userSelect: 'none', lineHeight: 1 }}

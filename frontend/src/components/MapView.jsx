@@ -53,12 +53,12 @@ const TILE_URLS = {
 const MAX_ZOOM_BY_MODE    = { map: 19, topo: 17, dem: 11 }
 const MAX_ZOOM_OFFLINE_DEFAULT = { map: 11, topo: 14, dem: 11 }
 
-function makeIcon(index, isActive, isHighlighted, t, routeColor) {
+function makeIcon(index, isActive, isHighlighted, t, routeColor, isSelected = false) {
   const rc     = routeColor ?? t.accent
-  const fill   = isHighlighted ? '#FFD700' : isActive ? rc        : t.border0
-  const stroke = isHighlighted ? '#8B6914' : isActive ? t.bg0     : rc
-  const text   = isHighlighted ? '#222'    : isActive ? t.bg0     : t.text1
-  const sw     = isActive ? '1.5' : '2.5'
+  const fill   = isHighlighted ? '#FFD700' : isSelected ? '#22c55e' : isActive ? rc : t.border0
+  const stroke = isHighlighted ? '#8B6914' : isSelected ? '#166534' : isActive ? t.bg0 : rc
+  const text   = isHighlighted ? '#222'    : isSelected ? t.bg0 : isActive ? t.bg0 : t.text1
+  const sw     = isSelected ? '1.5' : isActive ? '1.5' : '2.5'
   const svg = encodeURIComponent(`
     <svg xmlns="http://www.w3.org/2000/svg" width="28" height="36" viewBox="0 0 28 36">
       <path d="M14 0 C6.3 0 0 6.3 0 14 C0 24.5 14 36 14 36 C14 36 28 24.5 28 14 C28 6.3 21.7 0 14 0Z"
@@ -109,7 +109,7 @@ function calcBearing(lat1, lon1, lat2, lon2) {
   return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360
 }
 
-export default function MapView({ waypoints, results, activeWpt, onMapClick, onMarkerClick, highlightedWptIdx, highlightedLeg, sizeKey, bgRoutes, activeRouteColor, opacity = 1, stopAlert = null, alerts = [], addMode = false, tileMode = 'offline' }) {
+export default function MapView({ waypoints, results, activeWpt, onMapClick, onMarkerClick, highlightedWptIdx, highlightedLeg, selectedWpts = new Set(), sizeKey, bgRoutes, activeRouteColor, opacity = 1, stopAlert = null, alerts = [], addMode = false, tileMode = 'offline' }) {
   const { t } = useTheme()
   const containerRef  = useRef(null)
   const mapRef        = useRef(null)
@@ -351,7 +351,7 @@ export default function MapView({ waypoints, results, activeWpt, onMapClick, onM
         : `<b>${w.name || `WP${i+1}`}</b>`
 
       const marker = L.marker([parseFloat(w.lat), parseFloat(w.lon)], {
-        icon: makeIcon(i, activeWpt === w.index, isHighlighted, t, activeRouteColor),
+        icon: makeIcon(i, activeWpt === w.index, isHighlighted, t, activeRouteColor, selectedWpts.has(i)),
       }).bindPopup(popupHtml)
         .bindTooltip(w.name || `WP${i+1}`, { permanent: true, direction: 'right', offset: [6, -18], className: 'wpt-label' })
         .addTo(map)
@@ -360,7 +360,7 @@ export default function MapView({ waypoints, results, activeWpt, onMapClick, onM
     })
 
     if (latlngs.length >= 2) map.fitBounds(L.latLngBounds(latlngs), { padding: [40, 40] })
-  }, [waypoints, results, activeWpt, highlightedWptIdx, highlightedLeg, t, activeRouteColor, alerts])
+  }, [waypoints, results, activeWpt, highlightedWptIdx, highlightedLeg, selectedWpts, t, activeRouteColor, alerts])
 
   // ── Stop-alert marker (WARNING=red, CAUTION=yellow) ─────────────────────────
   useEffect(() => {

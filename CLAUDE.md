@@ -91,6 +91,29 @@ pytest tests/test_scenarios.py::test_einat1_saraf_lb_2bidons -v
 
 ## Deployment
 
+### Desktop Executables
+Build with PyInstaller from repo root (`venv` active):
+```bash
+pyinstaller ilana.spec --noconfirm --clean       # Builds ilana.exe
+pyinstaller ilana-local.spec --noconfirm --clean # Builds ilana-local.exe
+```
+
+Two variants are available for different deployment scenarios:
+
+| Executable | Behavior | Best For |
+|-----------|----------|----------|
+| **`ilana.exe`** | Runs directly from network share | Network installs; simple, no setup |
+| **`ilana-local.exe`** | Auto-copies to `%LOCALAPPDATA%\Ilana\` on first run from network | Slow/unreliable networks; field deployments |
+
+Both variants:
+- Keep the 20 GB `data/` folder on the network share (symlink or referenced via `data_path.txt`)
+- Run the same backend/frontend code
+- Detect data location via `ILANA_DATA_DIR` env var or `data_path.txt` in the exe directory
+
+Output: `dist/ilana/` and `dist/ilana-local/` — copy your `data/` folder into each, then zip and ship.
+
+### Cloud
 - **Render.com**: `render.yaml` defines backend service; set `ALLOWED_ORIGINS` env var for CORS
-- **Desktop**: `ilana.spec` (PyInstaller) bundles backend + frontend dist into a standalone app
-- **Frontend**: Standard SPA; backend serves `frontend/dist/index.html` as fallback for unmatched routes
+
+### Frontend
+- Standard SPA; backend serves `frontend/dist/index.html` as fallback for unmatched routes

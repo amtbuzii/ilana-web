@@ -89,11 +89,12 @@ if sys.platform == "win32":
     _log("asyncio: WindowsSelectorEventLoopPolicy set")
 
 
-# ── 4. Network-share detection: copy app to local drive and re-launch ─────────
-# Windows blocks localhost socket binding for executables run from network shares
-# (UNC paths like \\server\share or mapped remote drives). Fix: copy the app
-# bundle to %LOCALAPPDATA%\Ilana\ on first run, keep data on the share, and
-# re-launch from the local copy. Subsequent runs skip the copy if already current.
+# ── 4. Network-share detection: copy app to local drive (ilana-local only) ───
+# Windows blocks localhost socket binding for executables run from network shares.
+# Two exe variants:
+#   • ilana.exe — runs from network share (simple, no setup)
+#   • ilana-local.exe — copies to %LOCALAPPDATA%\Ilana\ on first run
+# Only ilana-local.exe performs the copy; ilana.exe runs directly from network.
 
 def _is_network_path(path: Path) -> bool:
     s = str(path)
@@ -124,8 +125,11 @@ def _app_needs_copy(src_exe: Path, dst_exe: Path) -> bool:
         return True
 
 
-if getattr(sys, "frozen", False) and sys.platform == "win32" and _is_network_path(_EXE_DIR):
-    _log(f"Network path detected: {_EXE_DIR} — switching to local copy")
+_exe_stem = Path(sys.executable).stem
+_should_copy = _exe_stem == "ilana-local"
+
+if getattr(sys, "frozen", False) and sys.platform == "win32" and _is_network_path(_EXE_DIR) and _should_copy:
+    _log(f"Network path detected: {_EXE_DIR} — copying to local drive")
 
     _local_app = _get_local_app_dir()
     _exe_name  = Path(sys.executable).name
@@ -139,7 +143,7 @@ if getattr(sys, "frozen", False) and sys.platform == "win32" and _is_network_pat
         try:
             import tkinter as _tk
             _copy_win = _tk.Tk()
-            _copy_win.title("Ilana — First-time setup")
+            _copy_win.title("Ilana — Setup")
             _copy_win.geometry("420x90")
             _copy_win.resizable(False, False)
             _tk.Label(
@@ -190,6 +194,8 @@ if getattr(sys, "frozen", False) and sys.platform == "win32" and _is_network_pat
         sys.exit(0)
     else:
         _log("WARNING: local exe not found after copy — continuing from network (may fail)")
+elif getattr(sys, "frozen", False) and sys.platform == "win32" and _is_network_path(_EXE_DIR):
+    _log(f"Running from network path: {_EXE_DIR} (use ilana-local.exe to copy to local drive)")
 
 
 # ── 5. Detect already-running instance ───────────────────────────────────────

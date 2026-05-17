@@ -377,7 +377,8 @@ export function exportExcel(routesData, projectName = 'Ilana') {
   }
 
   const safeFile = projectName.trim().replace(/[^\w\s\-]/g, '_') || 'mission'
-  XLSX.writeFile(wb, `${safeFile}.xlsx`)
+  const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' })
+  return { blob: new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), filename: `${safeFile}.xlsx` }
 }
 
 // ── Reverse lookup maps used during import ─────────────────────────────────

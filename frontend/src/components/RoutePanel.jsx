@@ -126,14 +126,14 @@ function WingStoresDiagram({ stations, fcrOn, compodOn, variant, t }) {
         {/* COMPOD — only for non-Peten */}
         {!isPeten && (
           <g opacity={compodOn ? 0.9 : 0.35}>
-            <path d="M 63,46 L 75,46 L 75,57 Q 75,62 70,62 L 68,62 Q 63,62 63,57 Z"
+            <path d="M 245,46 L 257,46 L 257,57 Q 257,62 252,62 L 250,62 Q 245,62 245,57 Z"
               fill={cpdFill} stroke={cpdStroke} strokeWidth="1.2"/>
-            <text x="69" y="53" textAnchor="middle" fill={cpdText} fontSize="5.5"
+            <text x="251" y="53" textAnchor="middle" fill={cpdText} fontSize="5.5"
               fontFamily={t.font} fontWeight="700" letterSpacing="0.5">CPD</text>
-            <text x="69" y="60" textAnchor="middle" fill={cpdText} fontSize="5" fontFamily={t.font}>
+            <text x="251" y="60" textAnchor="middle" fill={cpdText} fontSize="5" fontFamily={t.font}>
               {compodOn ? 'ON' : 'OFF'}
             </text>
-            <line x1="75" y1="52" x2="90" y2="52"
+            <line x1="245" y1="52" x2="230" y2="52"
               stroke={cpdStroke} strokeWidth="1" strokeDasharray={compodOn ? '' : '2 2'}/>
           </g>
         )}

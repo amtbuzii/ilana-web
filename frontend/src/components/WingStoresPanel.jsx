@@ -1,6 +1,7 @@
 // Wing stores panel — configure pylon loads, compute ATF/ΔF, and enter weapon counts.
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useTheme } from '../theme.jsx'
+import { useExplanations } from '../useExplanations.js'
 
 const STATION_LAYOUT = [
   { id: 'l_outboard', label: 'L-OB', type: 'outboard' },
@@ -55,6 +56,7 @@ function localComputeAtf(stations, s, fcrOn, compodOn) {
 
 export default function WingStoresPanel({ initialStations, initialFcrOn = false, initialCompodOn = false, onAtfChange, onStationsChange, variant, gunAmmo, onGunAmmoChange, hfMissiles, onHfMissilesChange, eoMissiles, onEoMissilesChange, rocketRounds, onRocketRoundsChange, onFcrChange, onCompodChange, fcrDeltaF = 0.81, compodDeltaF = 0.0, storeDfSettings }) {
   const { t } = useTheme()
+  const { get } = useExplanations()
   const config = STATIC_CONFIG
   const [stations, setStations]   = useState(initialStations ?? DEFAULT_STATIONS)
   const [atf, setAtf]             = useState(1.0)
@@ -108,7 +110,7 @@ export default function WingStoresPanel({ initialStations, initialFcrOn = false,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         background: t.bg2, borderLeft: expanded ? `3px solid ${t.accent}` : '3px solid transparent',
       }}>
-        <span style={{ fontSize: 12, fontWeight: 700, color: expanded ? t.text0 : t.text2, letterSpacing: 2 }}>WING STORES</span>
+        <span title={get('WING_STORES')} style={{ fontSize: 12, fontWeight: 700, color: expanded ? t.text0 : t.text2, letterSpacing: 2 }}>WING STORES</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           {/* Show ATF/ΔF summary in collapsed state */}
           {!expanded && <>
@@ -121,20 +123,22 @@ export default function WingStoresPanel({ initialStations, initialFcrOn = false,
 
       {expanded && (
         <div style={{ padding: '8px 16px', background: t.bg3 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
-            <span style={{
-              fontWeight: 700, fontSize: 12, color: atfColor,
-              background: t.bg2, padding: '3px 10px', borderRadius: 4,
-              border: `1px solid ${atfColor}`, letterSpacing: 1, fontFamily: t.font,
-            }}>ATF {atf.toFixed(3)}</span>
-            <span style={{
-              fontWeight: 700, fontSize: 9, letterSpacing: 1,
-              padding: '3px 8px', borderRadius: 4, fontFamily: t.font,
-              color: fcrOn ? t.bg0 : t.caution,
-              background: fcrOn ? t.ok : 'none',
-              border: `1px solid ${fcrOn ? t.ok : t.caution}`,
-            }}>FCR {fcrOn ? 'ON  +0' : `OFF  −${fcrDeltaF.toFixed(3)}`}</span>
-            {!isPeten && <span style={{
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span title={get('ATF')} style={{
+                fontWeight: 700, fontSize: 12, color: atfColor,
+                background: t.bg2, padding: '3px 10px', borderRadius: 4,
+                border: `1px solid ${atfColor}`, letterSpacing: 1, fontFamily: t.font,
+              }}>ATF {atf.toFixed(3)}</span>
+              <span title={get('FCR')} style={{
+                fontWeight: 700, fontSize: 9, letterSpacing: 1,
+                padding: '3px 8px', borderRadius: 4, fontFamily: t.font,
+                color: fcrOn ? t.bg0 : t.caution,
+                background: fcrOn ? t.ok : 'none',
+                border: `1px solid ${fcrOn ? t.ok : t.caution}`,
+              }}>FCR {fcrOn ? 'ON  +0' : `OFF  −${fcrDeltaF.toFixed(3)}`}</span>
+            </div>
+            {!isPeten && <span title={get('COMPOD')} style={{
               fontWeight: 700, fontSize: 9, letterSpacing: 1,
               padding: '3px 8px', borderRadius: 4, fontFamily: t.font,
               color: compodOn ? t.bg0 : t.text3,
@@ -182,30 +186,45 @@ export default function WingStoresPanel({ initialStations, initialFcrOn = false,
             <div style={{ marginTop: 8, paddingTop: 8, borderTop: `1px solid ${t.border0}` }}>
               <div style={{ fontSize: 9, color: t.text3, marginBottom: 6, letterSpacing: 2 }}>MISSILE / ROCKET LOAD</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-                {hfCount > 0 && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: 9, color: t.text2, width: 90 }}>AGM-114 ×</span>
-                    <input value={hfMissiles} onChange={e => onHfMissilesChange(e.target.value)}
-                      style={{ width: 45, background: t.bg2, border: `1px solid ${t.border0}`, borderRadius: 3, padding: '2px 5px', color: t.text0, fontSize: 11, fontFamily: t.font }} />
-                    <span style={{ fontSize: 9, color: t.text3 }}>{hfCount} launcher{hfCount > 1 ? 's' : ''}, dflt {hfCount * 3}</span>
-                  </div>
-                )}
-                {eoCount > 0 && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: 9, color: t.text2, width: 90 }}>EO msls ×</span>
-                    <input value={eoMissiles} onChange={e => onEoMissilesChange(e.target.value)}
-                      style={{ width: 45, background: t.bg2, border: `1px solid ${t.border0}`, borderRadius: 3, padding: '2px 5px', color: t.text0, fontSize: 11, fontFamily: t.font }} />
-                    <span style={{ fontSize: 9, color: t.text3 }}>{eoCount} launcher{eoCount > 1 ? 's' : ''}, dflt {eoCount * 2}</span>
-                  </div>
-                )}
-                {rktCount > 0 && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: 9, color: t.text2, width: 90 }}>Rockets ×</span>
-                    <input value={rocketRounds} onChange={e => onRocketRoundsChange(e.target.value)}
-                      style={{ width: 45, background: t.bg2, border: `1px solid ${t.border0}`, borderRadius: 3, padding: '2px 5px', color: t.text0, fontSize: 11, fontFamily: t.font }} />
-                    <span style={{ fontSize: 9, color: t.text3 }}>{rktCount} launcher{rktCount > 1 ? 's' : ''}, dflt {rktCount * 4}</span>
-                  </div>
-                )}
+                {hfCount > 0 && (() => {
+                  const maxHf = hfCount * 4
+                  const numHf = parseFloat(hfMissiles)
+                  const invalidHf = hfMissiles !== '' && !isNaN(numHf) && (numHf < 0 || numHf > maxHf)
+                  return (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 9, color: t.text2, width: 90 }}>AGM-114 ×</span>
+                      <input value={hfMissiles} onChange={e => onHfMissilesChange(e.target.value)}
+                        style={{ width: 45, background: invalidHf ? t.warn + '22' : t.bg2, border: `1px solid ${invalidHf ? t.warn : t.border0}`, borderRadius: 3, padding: '2px 5px', color: invalidHf ? t.warn : t.text0, fontSize: 11, fontFamily: t.font }} />
+                      <span style={{ fontSize: 9, color: invalidHf ? t.warn : t.text3 }}>max {maxHf}</span>
+                    </div>
+                  )
+                })()}
+                {eoCount > 0 && (() => {
+                  const maxEo = eoCount * 4
+                  const numEo = parseFloat(eoMissiles)
+                  const invalidEo = eoMissiles !== '' && !isNaN(numEo) && (numEo < 0 || numEo > maxEo)
+                  return (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 9, color: t.text2, width: 90 }}>EO msls ×</span>
+                      <input value={eoMissiles} onChange={e => onEoMissilesChange(e.target.value)}
+                        style={{ width: 45, background: invalidEo ? t.warn + '22' : t.bg2, border: `1px solid ${invalidEo ? t.warn : t.border0}`, borderRadius: 3, padding: '2px 5px', color: invalidEo ? t.warn : t.text0, fontSize: 11, fontFamily: t.font }} />
+                      <span style={{ fontSize: 9, color: invalidEo ? t.warn : t.text3 }}>max {maxEo}</span>
+                    </div>
+                  )
+                })()}
+                {rktCount > 0 && (() => {
+                  const maxRkt = 9
+                  const numRkt = parseFloat(rocketRounds)
+                  const invalidRkt = rocketRounds !== '' && !isNaN(numRkt) && (numRkt < 0 || numRkt > maxRkt)
+                  return (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 9, color: t.text2, width: 90 }}>Rockets ×</span>
+                      <input value={rocketRounds} onChange={e => onRocketRoundsChange(e.target.value)}
+                        style={{ width: 45, background: invalidRkt ? t.warn + '22' : t.bg2, border: `1px solid ${invalidRkt ? t.warn : t.border0}`, borderRadius: 3, padding: '2px 5px', color: invalidRkt ? t.warn : t.text0, fontSize: 11, fontFamily: t.font }} />
+                      <span style={{ fontSize: 9, color: invalidRkt ? t.warn : t.text3 }}>max {maxRkt}</span>
+                    </div>
+                  )
+                })()}
               </div>
             </div>
           )}
@@ -261,13 +280,13 @@ function AircraftDiagram({ stations, storesFor, onChange, gunAmmo, fcrOn, onFcrT
           {/* Wing stubs */}
           <rect x="90"  y="48" width="40" height="9" rx="2" fill={t.bg2} stroke={t.border0} strokeWidth="1"/>
           <rect x="190" y="48" width="40" height="9" rx="2" fill={t.bg2} stroke={t.border0} strokeWidth="1"/>
-          {/* COMPOD — left of L-OB pylon, hidden for Peten */}
+          {/* COMPOD — right of R-OB pylon, hidden for Peten */}
           {!fcrDisabled && <g onClick={onCompodToggle} style={{ cursor: 'pointer' }}>
-            <path d="M 63,46 L 75,46 L 75,57 Q 75,62 70,62 L 68,62 Q 63,62 63,57 Z"
+            <path d="M 245,46 L 257,46 L 257,57 Q 257,62 252,62 L 250,62 Q 245,62 245,57 Z"
               fill={cpdFill} stroke={cpdStroke} strokeWidth="1.2" opacity={cpdOpacity}/>
-            <text x="69" y="53" textAnchor="middle" fill={cpdText} fontSize="5.5" fontFamily={t.font} fontWeight="700" letterSpacing="0.5">CPD</text>
-            <text x="69" y="60" textAnchor="middle" fill={cpdText} fontSize="5" fontFamily={t.font}>{compodOn ? 'ON' : 'OFF'}</text>
-            <line x1="75" y1="52" x2="90" y2="52" stroke={cpdStroke} strokeWidth="1" strokeDasharray={compodOn ? '' : '2 2'}/>
+            <text x="251" y="53" textAnchor="middle" fill={cpdText} fontSize="5.5" fontFamily={t.font} fontWeight="700" letterSpacing="0.5">CPD</text>
+            <text x="251" y="60" textAnchor="middle" fill={cpdText} fontSize="5" fontFamily={t.font}>{compodOn ? 'ON' : 'OFF'}</text>
+            <line x1="245" y1="52" x2="230" y2="52" stroke={cpdStroke} strokeWidth="1" strokeDasharray={compodOn ? '' : '2 2'}/>
           </g>}
           {/* Pylon dots */}
           {[100,120,200,220].map(x => <circle key={x} cx={x} cy="52" r="3" fill={t.accent}/>)}

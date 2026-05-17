@@ -37,7 +37,7 @@ const fmtHMS = (totalSec) => {
 
 const minToHMS = (totalMin) => fmtHMS(totalMin * 60)
 
-export default function ResultsTable({ results, inputWaypoints = [], targetWptIdx = null, cspWptIdx = null, onSelectWpt, onSelectLeg, selectedWpt, selectedLeg, alerts = [] }) {
+export default function ResultsTable({ results, inputWaypoints = [], targetWptIdx = null, cspWptIdx = null, onSelectWpt, onSelectLeg, selectedWpt, selectedLeg, alerts = [], jokerFuel = 350 }) {
   const { t } = useTheme()
   const { legs, waypoints, total_distance_nm, total_time_min, total_fuel_burned_lbs } = results
 
@@ -92,8 +92,16 @@ export default function ResultsTable({ results, inputWaypoints = [], targetWptId
   const timeColHdr  = timeMode === 'ttime' ? 'T-TIME' : 'DAY TIME'
   const showHoldCol = waypoints.some(w => w.hold_type)
 
+  // Calculate Joker fuel for each waypoint: work backward from destination once
+  const jokerAtWpt = new Array(waypoints.length)
+  jokerAtWpt[waypoints.length - 1] = jokerFuel // destination has minimum reserve
+  for (let i = waypoints.length - 2; i >= 0; i--) {
+    const leg = legs[i]
+    jokerAtWpt[i] = jokerAtWpt[i + 1] + (leg ? leg.fuel_burned_lbs : 0)
+  }
+
   const WPT_HEADERS = [
-    'POINT', 'GW LBS', 'FUEL LBS',
+    'POINT', 'GW LBS', 'FUEL LBS', 'JOKER LBS',
     'LEG TIME', 'FLT TIME',
     ...(showTimeCol ? [timeColHdr] : []),
     'LEG NM', 'RANGE NM',
@@ -209,6 +217,8 @@ export default function ResultsTable({ results, inputWaypoints = [], targetWptId
                     {/* GW / FUEL */}
                     <Td t={t} warn={w.gross_weight_lbs > 21000}>{Math.round(w.gross_weight_lbs).toLocaleString()}</Td>
                     <Td t={t}>{Math.round(w.fuel_remaining_lbs).toLocaleString()}</Td>
+                    {/* JOKER */}
+                    <Td t={t} warn={w.fuel_remaining_lbs < jokerAtWpt[i]}>{Math.round(jokerAtWpt[i]).toLocaleString()}</Td>
                     {/* LEG TIME / FLT TIME */}
                     <Td t={t} dim>{leg ? minToHMS(leg.leg_time_min) : '—'}</Td>
                     <Td t={t} accent={isTarget} bold={isTarget}>{minToHMS(w.cum_time_min)}</Td>
